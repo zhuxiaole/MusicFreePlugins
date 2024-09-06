@@ -97,7 +97,7 @@ module.exports = {
   author: "猪小乐",
   appVersion: ">0.1.0-alpha.0",
   srcUrl:
-    "https://gitee.com/maotoumao/MusicFreePlugins/raw/v0.1/dist/navidrome/index.js",
+    "https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js",
   cacheControl: "no-cache",
   userVariables: [
     {
