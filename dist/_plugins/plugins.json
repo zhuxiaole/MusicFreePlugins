@@ -1,0 +1,1 @@
+{"plugins":[{"name":"Navidrome","url":"https://gitee.com/maotoumao/MusicFreePlugins/raw/v0.1/dist/navidrome/index.js","version":"0.0.0"},{"name":"${PLUGIN_NAME}","url":"https://gitee.com/maotoumao/MusicFreePlugins/raw/v0.1/dist/navidrome/index.js","version":"${PLUGIN_VERSION}"}]}
