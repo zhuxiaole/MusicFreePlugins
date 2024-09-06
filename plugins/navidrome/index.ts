@@ -2,13 +2,18 @@ import axios from "axios";
 import CryptoJs = require("crypto-js");
 
 const pageSize = 25;
+let userVars;
+
+function setUserVariables(userVariables) {
+  userVars = userVariables;
+}
 
 function genSalt() {
   return Math.random().toString(16).slice(2);
 }
 
 function getRequestURL(urlPath) {
-  const userVariables = env?.getUserVariables() ?? {};
+  const userVariables = userVars ? userVars : env?.getUserVariables() ?? {};
   let { url, username, password } = userVariables;
   if (!(url && username && password)) {
     return null;
@@ -137,7 +142,7 @@ module.exports = {
     },
   ],
   supportedSearchType: ["music", "album"],
-
+  setUserVariables,
   search,
   getMediaSource,
 };
