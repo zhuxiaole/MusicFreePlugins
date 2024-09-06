@@ -37,54 +37,54 @@ function formatArtistItem(it) {
     return Object.assign(Object.assign({}, it), { avatar: it.artistImageUrl });
 }
 async function searchMusic(query, page) {
-    const data = await httpGet('search2', {
+    const data = await httpGet("search2", {
         query,
         songCount: pageSize,
-        songOffset: (page - 1) * pageSize
+        songOffset: (page - 1) * pageSize,
     });
-    const songs = data['subsonic-response'].searchResult2.song;
+    const songs = data["subsonic-response"].searchResult2.song;
     return {
         isEnd: songs.length < pageSize,
-        data: songs.map(formatMusicItem)
+        data: songs.map(formatMusicItem),
     };
 }
 async function searchAlbum(query, page) {
-    const data = await httpGet('search2', {
+    const data = await httpGet("search2", {
         query,
         albumCount: pageSize,
-        albumOffset: (page - 1) * pageSize
+        albumOffset: (page - 1) * pageSize,
     });
-    const songs = data['subsonic-response'].searchResult2.album;
+    const songs = data["subsonic-response"].searchResult2.album;
     return {
         isEnd: songs.length < pageSize,
-        data: songs.map(formatAlbumItem)
+        data: songs.map(formatAlbumItem),
     };
 }
 async function searchArtist(query, page) {
-    const data = await httpGet('search2', {
+    const data = await httpGet("search2", {
         query,
         songCount: pageSize,
-        songOffset: (page - 1) * pageSize
+        songOffset: (page - 1) * pageSize,
     });
-    const songs = data['subsonic-response'].searchResult2.song;
+    const songs = data["subsonic-response"].searchResult2.song;
     return {
         isEnd: songs.length < pageSize,
-        data: songs.map(formatMusicItem)
+        data: songs.map(formatMusicItem),
     };
 }
 async function getAlbumInfo(albumItem) {
-    const data = await httpGet('getAlbum', {
-        id: albumItem.id
+    const data = await httpGet("getAlbum", {
+        id: albumItem.id,
     });
     return {
         isEnd: true,
-        data: data['subsonic-response'].album.song.map(formatMusicItem)
+        data: data["subsonic-response"].album.song.map(formatMusicItem),
     };
 }
 module.exports = {
-    platform: "Navidrome",
-    version: "0.0.0",
-    author: '猫头猫',
+    platform: "Emby",
+    version: "0.0.1",
+    author: "猪小乐",
     appVersion: ">0.1.0-alpha.0",
     srcUrl: "https://gitee.com/maotoumao/MusicFreePlugins/raw/v0.1/dist/navidrome/index.js",
     cacheControl: "no-cache",
@@ -123,15 +123,15 @@ module.exports = {
         }
         const salt = Math.random().toString(16).slice(2);
         const urlObj = new URL(`${url}/rest/stream`);
-        urlObj.searchParams.append('u', username);
-        urlObj.searchParams.append('s', salt);
-        urlObj.searchParams.append('t', CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
-        urlObj.searchParams.append('c', 'MusicFree');
-        urlObj.searchParams.append('v', '1.14.1');
-        urlObj.searchParams.append('f', 'json');
-        urlObj.searchParams.append('id', musicItem.id);
+        urlObj.searchParams.append("u", username);
+        urlObj.searchParams.append("s", salt);
+        urlObj.searchParams.append("t", CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
+        urlObj.searchParams.append("c", "MusicFree");
+        urlObj.searchParams.append("v", "1.14.1");
+        urlObj.searchParams.append("f", "json");
+        urlObj.searchParams.append("id", musicItem.id);
         return {
-            url: urlObj.toString()
+            url: urlObj.toString(),
         };
-    }
+    },
 };

@@ -3,8 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = require("axios");
 const CryptoJs = require("crypto-js");
 const pageSize = 25;
-const PLUGIN_NAME = "Navidrome";
-const PLUGIN_VERSION = "0.0.1";
 function genSalt() {
     return Math.random().toString(16).slice(2);
 }
@@ -23,8 +21,8 @@ function getRequestURL(urlPath) {
     urlObj.searchParams.append("u", username);
     urlObj.searchParams.append("s", salt);
     urlObj.searchParams.append("t", CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
-    urlObj.searchParams.append("c", `"MusicFree-Pig"${PLUGIN_NAME}`);
-    urlObj.searchParams.append("v", PLUGIN_VERSION);
+    urlObj.searchParams.append("c", "MusicFree-PigNavidrome");
+    urlObj.searchParams.append("v", "0.0.1");
     urlObj.searchParams.append("f", "json");
     return urlObj;
 }
@@ -64,8 +62,8 @@ async function searchAlbum(query, page) {
     };
 }
 module.exports = {
-    platform: `${PLUGIN_NAME}`,
-    version: `${PLUGIN_VERSION}`,
+    platform: "Navidrome",
+    version: "0.0.1",
     author: "猪小乐",
     appVersion: ">0.1.0-alpha.0",
     srcUrl: "https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js",
