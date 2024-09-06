@@ -32,6 +32,13 @@ function getRequestURL(urlPath) {
   return urlObj;
 }
 
+function getCoverArtUrl(coverArt) {
+  const urlObj = getRequestURL("getCoverArt");
+  urlObj.searchParams.append("id", coverArt);
+  urlObj.searchParams.append("size", "300");
+  return urlObj.toString();
+}
+
 async function httpGet(
   urlPath: string,
   params?: Record<string, string | number | boolean>
@@ -48,14 +55,14 @@ async function httpGet(
 function formatMusicItem(it) {
   return {
     ...it,
-    artwork: it.coverArt,
+    artwork: getCoverArtUrl(it.coverArt),
   };
 }
 
 function formatAlbumItem(it) {
   return {
     ...it,
-    artwork: it.coverArt,
+    artwork: getCoverArtUrl(it.coverArt),
   };
 }
 
@@ -89,6 +96,24 @@ async function searchAlbum(query, page) {
   };
 }
 
+async function search(query, page, type) {
+  if (type === "music") {
+    return await searchMusic(query, page);
+  }
+  if (type === "album") {
+    return await searchAlbum(query, page);
+  }
+}
+
+async function getMediaSource(musicItem) {
+  const urlObj = getRequestURL("stream");
+  urlObj.searchParams.append("id", musicItem.id);
+
+  return {
+    url: urlObj.toString(),
+  };
+}
+
 module.exports = {
   platform: "Navidrome",
   version: "0.0.1",
@@ -112,21 +137,7 @@ module.exports = {
     },
   ],
   supportedSearchType: ["music", "album"],
-  async search(query, page, type) {
-    if (type === "music") {
-      return await searchMusic(query, page);
-    }
-    if (type === "album") {
-      return await searchAlbum(query, page);
-    }
-  },
 
-  async getMediaSource(musicItem) {
-    const urlObj = getRequestURL("stream");
-    urlObj.searchParams.append("id", musicItem.id);
-
-    return {
-      url: urlObj.toString(),
-    };
-  },
+  search,
+  getMediaSource,
 };

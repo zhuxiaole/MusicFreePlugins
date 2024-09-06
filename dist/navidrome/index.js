@@ -26,16 +26,22 @@ function getRequestURL(urlPath) {
     urlObj.searchParams.append("f", "json");
     return urlObj;
 }
+function getCoverArtUrl(coverArt) {
+    const urlObj = getRequestURL("getCoverArt");
+    urlObj.searchParams.append("id", coverArt);
+    urlObj.searchParams.append("size", "300");
+    return urlObj.toString();
+}
 async function httpGet(urlPath, params) {
     return (await axios_1.default.get(getRequestURL(urlPath).toString(), {
         params: Object.assign({}, params),
     })).data;
 }
 function formatMusicItem(it) {
-    return Object.assign(Object.assign({}, it), { artwork: it.coverArt });
+    return Object.assign(Object.assign({}, it), { artwork: getCoverArtUrl(it.coverArt) });
 }
 function formatAlbumItem(it) {
-    return Object.assign(Object.assign({}, it), { artwork: it.coverArt });
+    return Object.assign(Object.assign({}, it), { artwork: getCoverArtUrl(it.coverArt) });
 }
 async function searchMusic(query, page) {
     const data = await httpGet("search2", {
@@ -61,6 +67,21 @@ async function searchAlbum(query, page) {
         data: songs.map(formatAlbumItem),
     };
 }
+async function search(query, page, type) {
+    if (type === "music") {
+        return await searchMusic(query, page);
+    }
+    if (type === "album") {
+        return await searchAlbum(query, page);
+    }
+}
+async function getMediaSource(musicItem) {
+    const urlObj = getRequestURL("stream");
+    urlObj.searchParams.append("id", musicItem.id);
+    return {
+        url: urlObj.toString(),
+    };
+}
 module.exports = {
     platform: "Navidrome",
     version: "0.0.1",
@@ -83,19 +104,6 @@ module.exports = {
         },
     ],
     supportedSearchType: ["music", "album"],
-    async search(query, page, type) {
-        if (type === "music") {
-            return await searchMusic(query, page);
-        }
-        if (type === "album") {
-            return await searchAlbum(query, page);
-        }
-    },
-    async getMediaSource(musicItem) {
-        const urlObj = getRequestURL("stream");
-        urlObj.searchParams.append("id", musicItem.id);
-        return {
-            url: urlObj.toString(),
-        };
-    },
+    search,
+    getMediaSource,
 };
