@@ -26,7 +26,7 @@ function getRequestURL(urlPath) {
     urlObj.searchParams.append("s", salt);
     urlObj.searchParams.append("t", CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
     urlObj.searchParams.append("c", "MusicFree-PigNavidrome");
-    urlObj.searchParams.append("v", "0.0.1");
+    urlObj.searchParams.append("v", "1.14.0");
     urlObj.searchParams.append("f", "json");
     return urlObj;
 }
