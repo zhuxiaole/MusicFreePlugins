@@ -3,12 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = require("axios");
 const CryptoJs = require("crypto-js");
 const pageSize = 25;
+let userVars;
+function setUserVariables(userVariables) {
+    userVars = userVariables;
+}
 function genSalt() {
     return Math.random().toString(16).slice(2);
 }
 function getRequestURL(urlPath) {
     var _a;
-    const userVariables = (_a = env === null || env === void 0 ? void 0 : env.getUserVariables()) !== null && _a !== void 0 ? _a : {};
+    const userVariables = userVars ? userVars : (_a = env === null || env === void 0 ? void 0 : env.getUserVariables()) !== null && _a !== void 0 ? _a : {};
     let { url, username, password } = userVariables;
     if (!(url && username && password)) {
         return null;
@@ -104,6 +108,7 @@ module.exports = {
         },
     ],
     supportedSearchType: ["music", "album"],
+    setUserVariables,
     search,
     getMediaSource,
 };
