@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = require("axios");
 const CryptoJs = require("crypto-js");
 const pageSize = 25;
-let userVars;
+let userVars = null;
 function setUserVariables(userVariables) {
     userVars = userVariables;
 }
@@ -12,7 +12,7 @@ function genSalt() {
 }
 function getRequestURL(urlPath) {
     var _a;
-    const userVariables = userVars ? userVars : (_a = env === null || env === void 0 ? void 0 : env.getUserVariables()) !== null && _a !== void 0 ? _a : {};
+    const userVariables = userVars == null ? (_a = env === null || env === void 0 ? void 0 : env.getUserVariables()) !== null && _a !== void 0 ? _a : {} : userVars;
     let { url, username, password } = userVariables;
     if (!(url && username && password)) {
         return null;

@@ -2,9 +2,9 @@ import axios from "axios";
 import CryptoJs = require("crypto-js");
 
 const pageSize = 25;
-let userVars;
+let userVars: Record<string, string> = null;
 
-function setUserVariables(userVariables) {
+function setUserVariables(userVariables: Record<string, string>) {
   userVars = userVariables;
 }
 
@@ -13,7 +13,8 @@ function genSalt() {
 }
 
 function getRequestURL(urlPath) {
-  const userVariables = userVars ? userVars : env?.getUserVariables() ?? {};
+  const userVariables =
+    userVars == null ? env?.getUserVariables() ?? {} : userVars;
   let { url, username, password } = userVariables;
   if (!(url && username && password)) {
     return null;
