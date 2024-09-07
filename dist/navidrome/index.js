@@ -60,6 +60,13 @@ function formatAlbumItem(it) {
         worksNums: it.songCount,
     };
 }
+function formatArtist(it) {
+    return {
+        id: it.id,
+        name: it.name,
+        avatar: it.artistImageUrl,
+    };
+}
 function formatPlaylistItem(it) {
     return {
         id: it.id,
@@ -97,12 +104,28 @@ async function searchAlbum(query, page) {
         data: (_c = albums === null || albums === void 0 ? void 0 : albums.map(formatAlbumItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
+async function searchArtist(query, page) {
+    var _a, _b, _c;
+    const data = await httpGet("search3", {
+        query,
+        artistCount: pageSize,
+        artistOffset: (page - 1) * pageSize,
+    });
+    const artist = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.artist;
+    return {
+        isEnd: artist == null ? true : artist.length < pageSize,
+        data: (_c = artist === null || artist === void 0 ? void 0 : artist.map(formatArtist)) !== null && _c !== void 0 ? _c : [],
+    };
+}
 async function search(query, page, type) {
     if (type === "music") {
         return await searchMusic(query, page);
     }
     if (type === "album") {
         return await searchAlbum(query, page);
+    }
+    if (type === "artist") {
+        return await searchArtist(query, page);
     }
 }
 async function getMediaSource(musicItem) {
@@ -202,7 +225,7 @@ module.exports = {
             name: "密码",
         },
     ],
-    supportedSearchType: ["music", "album"],
+    supportedSearchType: ["music", "album", "artist"],
     setUserVariables,
     search,
     getMediaSource,

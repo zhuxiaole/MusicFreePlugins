@@ -79,6 +79,14 @@ function formatAlbumItem(it) {
   };
 }
 
+function formatArtist(it) {
+  return {
+    id: it.id,
+    name: it.name,
+    avatar: it.artistImageUrl,
+  };
+}
+
 function formatPlaylistItem(it) {
   return {
     id: it.id,
@@ -121,12 +129,30 @@ async function searchAlbum(query, page) {
   };
 }
 
+async function searchArtist(query, page) {
+  const data = await httpGet("search3", {
+    query,
+    artistCount: pageSize,
+    artistOffset: (page - 1) * pageSize,
+  });
+
+  const artist = data["subsonic-response"]?.searchResult3?.artist;
+
+  return {
+    isEnd: artist == null ? true : artist.length < pageSize,
+    data: artist?.map(formatArtist) ?? [],
+  };
+}
+
 async function search(query, page, type) {
   if (type === "music") {
     return await searchMusic(query, page);
   }
   if (type === "album") {
     return await searchAlbum(query, page);
+  }
+  if (type === "artist") {
+    return await searchArtist(query, page);
   }
 }
 
@@ -251,7 +277,7 @@ module.exports = {
       name: "密码",
     },
   ],
-  supportedSearchType: ["music", "album"],
+  supportedSearchType: ["music", "album", "artist"],
   setUserVariables,
   search,
   getMediaSource,
