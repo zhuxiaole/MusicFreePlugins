@@ -75,7 +75,7 @@ const service = axios.create({
 
 // 请求拦截器
 service.interceptors.request.use(
-  async (config) => {
+  async function (config) {
     config.baseURL = getBaseUrl();
 
     if (config.method === "post") {
@@ -117,10 +117,10 @@ service.interceptors.request.use(
 
 // 响应拦截器
 service.interceptors.response.use(
-  async (response) => {
+  async function (response) {
     return Promise.resolve(response);
   },
-  async (error: any) => {
+  async function (error: any) {
     if (error?.response?.status === 401) {
       // token 失效处理
       if (!isLoginUrl(error.config.url)) {
@@ -169,7 +169,7 @@ function requestToken(): Promise<any> {
   let { _, username, password } = getUserVariables();
 
   // 设置 singletonTokenRequest 为一个 Promise 对象 , 处理刷新 token 请求
-  singletonTokenRequest = new Promise<any>(async (resolve) => {
+  singletonTokenRequest = new Promise<any>(async function (resolve) {
     await service
       .post("/auth/login", {
         username,
@@ -629,7 +629,7 @@ async function getTopListDetail(topListItem, page) {
 
 module.exports = {
   platform: "Navidrome",
-  version: "0.0.3",
+  version: "0.0.4",
   author: "猪小乐",
   appVersion: ">0.1.0-alpha.0",
   srcUrl:

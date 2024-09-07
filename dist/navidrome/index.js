@@ -54,7 +54,7 @@ const service = axios.create({
     timeout: 30000,
     headers: { "User-Agent": UA },
 });
-service.interceptors.request.use(async (config) => {
+service.interceptors.request.use(async function (config) {
     config.baseURL = getBaseUrl();
     if (config.method === "post") {
         config.headers["Content-Type"] = "application/json;charset=utf-8";
@@ -75,9 +75,9 @@ service.interceptors.request.use(async (config) => {
 }, (error) => {
     return Promise.reject(error);
 });
-service.interceptors.response.use(async (response) => {
+service.interceptors.response.use(async function (response) {
     return Promise.resolve(response);
-}, async (error) => {
+}, async function (error) {
     var _a;
     if (((_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.status) === 401) {
         if (!isLoginUrl(error.config.url)) {
@@ -101,7 +101,7 @@ function requestToken() {
         return singletonTokenRequest;
     }
     let { _, username, password } = getUserVariables();
-    singletonTokenRequest = new Promise(async (resolve) => {
+    singletonTokenRequest = new Promise(async function (resolve) {
         await service
             .post("/auth/login", {
             username,
