@@ -185,11 +185,11 @@ function formatArtistItem(it) {
 function formatPlaylistItem(it) {
     return {
         id: it.id,
-        artist: it.owner,
+        artist: it.ownerName,
         title: it.name,
-        artwork: getCoverArtUrl(it.coverArt),
-        playCount: 0,
-        createTime: it.created,
+        artwork: getCoverArtUrl(it.id),
+        playCount: it.playCount ? it.playCount : 0,
+        createTime: it.createdAt,
         description: it.comment,
     };
 }
@@ -318,13 +318,19 @@ async function getLyric(musicItem) {
         rawLrc: convertToLRC(lyricLines),
     };
 }
-async function getRecommendSheetsByTag(_) {
-    var _a, _b, _c;
-    const data = (await service.get("/rest/getPlaylists")).data;
-    const playlist = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.playlists) === null || _b === void 0 ? void 0 : _b.playlist;
+async function getRecommendSheetsByTag(_, page) {
+    var _a;
+    const startIndex = (page - 1) * pageSize;
+    const data = (await service.get("/api/playlist", {
+        params: {
+            _start: startIndex,
+            _end: startIndex + pageSize,
+            _sort: "name",
+        },
+    })).data;
     return {
-        isEnd: true,
-        data: (_c = playlist === null || playlist === void 0 ? void 0 : playlist.map(formatPlaylistItem)) !== null && _c !== void 0 ? _c : [],
+        isEnd: data == null ? true : data.length < pageSize,
+        data: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function getMusicSheetInfo(sheetItem, _) {

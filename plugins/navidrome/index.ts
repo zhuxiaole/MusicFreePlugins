@@ -268,11 +268,11 @@ function formatArtistItem(it) {
 function formatPlaylistItem(it) {
   return {
     id: it.id,
-    artist: it.owner,
+    artist: it.ownerName,
     title: it.name,
-    artwork: getCoverArtUrl(it.coverArt),
-    playCount: 0,
-    createTime: it.created,
+    artwork: getCoverArtUrl(it.id),
+    playCount: it.playCount ? it.playCount : 0,
+    createTime: it.createdAt,
     description: it.comment,
   };
 }
@@ -438,15 +438,22 @@ async function getLyric(musicItem) {
   };
 }
 
-async function getRecommendSheetsByTag(_) {
+async function getRecommendSheetsByTag(_, page) {
+  const startIndex = (page - 1) * pageSize;
   // 获取某个 tag 下的所有歌单
-  const data = (await service.get("/rest/getPlaylists")).data;
-
-  const playlist = data["subsonic-response"]?.playlists?.playlist;
+  const data = (
+    await service.get("/api/playlist", {
+      params: {
+        _start: startIndex,
+        _end: startIndex + pageSize,
+        _sort: "name",
+      },
+    })
+  ).data;
 
   return {
-    isEnd: true,
-    data: playlist?.map(formatPlaylistItem) ?? [],
+    isEnd: data == null ? true : data.length < pageSize,
+    data: data?.map(formatPlaylistItem) ?? [],
   };
 }
 
