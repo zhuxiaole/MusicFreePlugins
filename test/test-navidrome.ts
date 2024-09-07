@@ -7,9 +7,9 @@ navidrome.setUserVariables({
   password: test.navidrome.password,
 });
 
-navidrome.search("陈一发", 1, "artist").then((res) => {
-  console.log(res);
-});
+// navidrome.search("陈一发", 1, "artist").then((res) => {
+//   console.log(res);
+// });
 
 // navidrome
 //   .getLyric({
@@ -42,3 +42,15 @@ navidrome.search("陈一发", 1, "artist").then((res) => {
 //   .then((res) => {
 //     console.log(res);
 //   });
+
+navidrome
+  .getArtistWorks(
+    {
+      id: "b68aba47f332d118ad655dcfa1029afc",
+    },
+    1,
+    "album"
+  )
+  .then((res) => {
+    console.log(res);
+  });

@@ -79,7 +79,7 @@ function formatAlbumItem(it) {
   };
 }
 
-function formatArtist(it) {
+function formatArtistItem(it) {
   return {
     id: it.id,
     name: it.name,
@@ -140,7 +140,7 @@ async function searchArtist(query, page) {
 
   return {
     isEnd: artist == null ? true : artist.length < pageSize,
-    data: artist?.map(formatArtist) ?? [],
+    data: artist?.map(formatArtistItem) ?? [],
   };
 }
 
@@ -255,6 +255,25 @@ async function getMusicSheetInfo(sheetItem, _) {
   };
 }
 
+async function getArtistAlbums(artistItem) {
+  const data = await httpGet("getArtist", {
+    id: artistItem.id,
+  });
+
+  const album = data["subsonic-response"]?.artist?.album;
+
+  return {
+    isEnd: true,
+    data: album?.map(formatAlbumItem) ?? [],
+  };
+}
+
+async function getArtistWorks(artistItem, _, type) {
+  if (type === "album") {
+    return await getArtistAlbums(artistItem);
+  }
+}
+
 module.exports = {
   platform: "Navidrome",
   version: "0.0.1",
@@ -286,4 +305,5 @@ module.exports = {
   getLyric,
   getRecommendSheetsByTag,
   getMusicSheetInfo,
+  getArtistWorks,
 };

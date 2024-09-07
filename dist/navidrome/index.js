@@ -60,7 +60,7 @@ function formatAlbumItem(it) {
         worksNums: it.songCount,
     };
 }
-function formatArtist(it) {
+function formatArtistItem(it) {
     return {
         id: it.id,
         name: it.name,
@@ -114,7 +114,7 @@ async function searchArtist(query, page) {
     const artist = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.artist;
     return {
         isEnd: artist == null ? true : artist.length < pageSize,
-        data: (_c = artist === null || artist === void 0 ? void 0 : artist.map(formatArtist)) !== null && _c !== void 0 ? _c : [],
+        data: (_c = artist === null || artist === void 0 ? void 0 : artist.map(formatArtistItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
 async function search(query, page, type) {
@@ -204,6 +204,22 @@ async function getMusicSheetInfo(sheetItem, _) {
         },
     };
 }
+async function getArtistAlbums(artistItem) {
+    var _a, _b, _c;
+    const data = await httpGet("getArtist", {
+        id: artistItem.id,
+    });
+    const album = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.artist) === null || _b === void 0 ? void 0 : _b.album;
+    return {
+        isEnd: true,
+        data: (_c = album === null || album === void 0 ? void 0 : album.map(formatAlbumItem)) !== null && _c !== void 0 ? _c : [],
+    };
+}
+async function getArtistWorks(artistItem, _, type) {
+    if (type === "album") {
+        return await getArtistAlbums(artistItem);
+    }
+}
 module.exports = {
     platform: "Navidrome",
     version: "0.0.1",
@@ -234,4 +250,5 @@ module.exports = {
     getLyric,
     getRecommendSheetsByTag,
     getMusicSheetInfo,
+    getArtistWorks,
 };
