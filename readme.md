@@ -2,17 +2,17 @@
 
 ### 插件地址
 
-##### Navidrome
+#### Navidrome
 
 https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js
 
-##### Emby
+#### Emby
 
 还没做
 
 ### 支持的功能
 
-##### Navidrome
+#### Navidrome
 
 - 排行榜（展示的都是专辑）
 - 歌单
@@ -21,7 +21,7 @@ https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreeP
 
 ### 不支持的功能
 
-##### Navidrome
+#### Navidrome
 
 - 作者详情展示歌曲列表
 - 搜索歌单、歌词
