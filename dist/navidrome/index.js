@@ -45,7 +45,13 @@ function formatMusicItem(it) {
     return Object.assign(Object.assign({}, it), { artwork: getCoverArtUrl(it.coverArt) });
 }
 function formatAlbumItem(it) {
-    return Object.assign(Object.assign({}, it), { artwork: getCoverArtUrl(it.coverArt) });
+    return {
+        id: it.id,
+        title: it.name,
+        artist: it.artist,
+        artwork: getCoverArtUrl(it.coverArt),
+        worksNums: it.songCount,
+    };
 }
 function formatPlaylistItem(it) {
     return {
@@ -78,10 +84,10 @@ async function searchAlbum(query, page) {
         albumCount: pageSize,
         albumOffset: (page - 1) * pageSize,
     });
-    const songs = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.album;
+    const albums = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.album;
     return {
-        isEnd: songs == null ? true : songs.length < pageSize,
-        data: (_c = songs === null || songs === void 0 ? void 0 : songs.map(formatAlbumItem)) !== null && _c !== void 0 ? _c : [],
+        isEnd: albums == null ? true : albums.length < pageSize,
+        data: (_c = albums === null || albums === void 0 ? void 0 : albums.map(formatAlbumItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
 async function search(query, page, type) {

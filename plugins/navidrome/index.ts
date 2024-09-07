@@ -67,8 +67,11 @@ function formatMusicItem(it) {
 
 function formatAlbumItem(it) {
   return {
-    ...it,
+    id: it.id,
+    title: it.name,
+    artist: it.artist,
     artwork: getCoverArtUrl(it.coverArt),
+    worksNums: it.songCount,
   };
 }
 
@@ -106,11 +109,11 @@ async function searchAlbum(query, page) {
     albumOffset: (page - 1) * pageSize,
   });
 
-  const songs = data["subsonic-response"]?.searchResult3?.album;
+  const albums = data["subsonic-response"]?.searchResult3?.album;
 
   return {
-    isEnd: songs == null ? true : songs.length < pageSize,
-    data: songs?.map(formatAlbumItem) ?? [],
+    isEnd: albums == null ? true : albums.length < pageSize,
+    data: albums?.map(formatAlbumItem) ?? [],
   };
 }
 
