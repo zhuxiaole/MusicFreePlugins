@@ -35,25 +35,25 @@ navidrome.setUserVariables({
 //     console.log(res);
 //   });
 
-// navidrome
-//   .getAlbumInfo({
-//     id: "0f221edbbab7def63f003acf76f8ce32",
-//   })
-//   .then((res) => {
-//     console.log(res);
-//   });
-
 navidrome
-  .getArtistWorks(
-    {
-      id: "b68aba47f332d118ad655dcfa1029afc",
-    },
-    1,
-    "album"
-  )
+  .getAlbumInfo({
+    id: "0f221edbbab7def63f003acf76f8ce32",
+  })
   .then((res) => {
     console.log(res);
   });
+
+// navidrome
+//   .getArtistWorks(
+//     {
+//       id: "b68aba47f332d118ad655dcfa1029afc",
+//     },
+//     1,
+//     "album"
+//   )
+//   .then((res) => {
+//     console.log(res);
+//   });
 
 // navidrome.getTopLists().then((res) => {
 //   console.log(res);

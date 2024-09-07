@@ -154,9 +154,10 @@ function formatMusicItem(it) {
         id: it.id,
         title: it.title,
         artist: it.artist,
+        artistId: it.artistId,
         album: it.album,
         albumid: it.albumId,
-        artwork: getCoverArtUrl(it.coverArt),
+        artwork: getCoverArtUrl(it.id),
         duration: it.duration,
     };
 }
@@ -270,21 +271,28 @@ async function getMusicInfo(musicItem) {
     const song = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.song;
     return formatMusicItem(song);
 }
-async function getAlbumInfo(albumItem, _) {
-    var _a, _b, _c, _d;
-    const data = (await service.get("/rest/getAlbum", {
+async function getAlbumInfo(albumItem, page) {
+    var _a, _b, _c, _d, _e;
+    const startIndex = (page - 1) * pageSize;
+    const albumRequest = service.get(`/api/album/${albumItem.id}`);
+    const songsRequest = service.get("/api/song", {
         params: {
-            id: albumItem.id,
+            album_id: albumItem.id,
+            _start: startIndex,
+            _end: startIndex + pageSize,
+            _order: "ASC",
+            _sort: "album",
         },
-    })).data;
-    const album = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.album;
-    const song = album === null || album === void 0 ? void 0 : album.song;
+    });
+    const datas = await Promise.all([albumRequest, songsRequest]);
+    const album = (_a = datas[0]) === null || _a === void 0 ? void 0 : _a.data;
+    const song = (_b = datas[1]) === null || _b === void 0 ? void 0 : _b.data;
     return {
-        isEnd: true,
-        musicList: (_b = song === null || song === void 0 ? void 0 : song.map(formatMusicItem)) !== null && _b !== void 0 ? _b : [],
+        isEnd: song == null ? true : song.length < pageSize,
+        musicList: (_c = song === null || song === void 0 ? void 0 : song.map(formatMusicItem)) !== null && _c !== void 0 ? _c : [],
         sheetItem: {
-            worksNums: (_c = album === null || album === void 0 ? void 0 : album.songCount) !== null && _c !== void 0 ? _c : 0,
-            playCount: (_d = album === null || album === void 0 ? void 0 : album.playCount) !== null && _d !== void 0 ? _d : 0,
+            worksNums: (_d = album === null || album === void 0 ? void 0 : album.songCount) !== null && _d !== void 0 ? _d : 0,
+            playCount: (_e = album === null || album === void 0 ? void 0 : album.playCount) !== null && _e !== void 0 ? _e : 0,
         },
     };
 }

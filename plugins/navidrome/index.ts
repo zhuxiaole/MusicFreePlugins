@@ -234,9 +234,10 @@ function formatMusicItem(it) {
     id: it.id,
     title: it.title,
     artist: it.artist,
+    artistId: it.artistId,
     album: it.album,
     albumid: it.albumId,
-    artwork: getCoverArtUrl(it.coverArt),
+    artwork: getCoverArtUrl(it.id),
     duration: it.duration,
   };
 }
@@ -373,20 +374,27 @@ async function getMusicInfo(musicItem) {
   return formatMusicItem(song);
 }
 
-async function getAlbumInfo(albumItem, _) {
-  const data = (
-    await service.get("/rest/getAlbum", {
-      params: {
-        id: albumItem.id,
-      },
-    })
-  ).data;
+async function getAlbumInfo(albumItem, page) {
+  const startIndex = (page - 1) * pageSize;
 
-  const album = data["subsonic-response"]?.album;
-  const song = album?.song;
+  const albumRequest = service.get(`/api/album/${albumItem.id}`);
+  const songsRequest = service.get("/api/song", {
+    params: {
+      album_id: albumItem.id,
+      _start: startIndex,
+      _end: startIndex + pageSize,
+      _order: "ASC",
+      _sort: "album",
+    },
+  });
+
+  const datas = await Promise.all([albumRequest, songsRequest]);
+
+  const album = datas[0]?.data;
+  const song = datas[1]?.data;
 
   return {
-    isEnd: true,
+    isEnd: song == null ? true : song.length < pageSize,
     musicList: song?.map(formatMusicItem) ?? [],
     sheetItem: {
       worksNums: album?.songCount ?? 0,
