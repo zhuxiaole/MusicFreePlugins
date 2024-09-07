@@ -11,9 +11,17 @@ navidrome.setUserVariables({
 //   console.log(res);
 // });
 
+// navidrome
+//   .getLyric({
+//     id: "6a42f42df9e86fb27ab963e70fd96c21",
+//   })
+//   .then((res) => {
+//     console.log(res);
+//   });
+
 navidrome
-  .getLyric({
-    id: "6a42f42df9e86fb27ab963e70fd96c21",
+  .getRecommendSheetsByTag({
+    tag: "",
   })
   .then((res) => {
     console.log(res);

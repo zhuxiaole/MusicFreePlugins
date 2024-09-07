@@ -26,7 +26,7 @@ function getRequestURL(urlPath) {
     urlObj.searchParams.append("s", salt);
     urlObj.searchParams.append("t", CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
     urlObj.searchParams.append("c", "MusicFree-PigNavidrome");
-    urlObj.searchParams.append("v", "1.8.0");
+    urlObj.searchParams.append("v", "1.14.0");
     urlObj.searchParams.append("f", "json");
     return urlObj;
 }
@@ -46,6 +46,17 @@ function formatMusicItem(it) {
 }
 function formatAlbumItem(it) {
     return Object.assign(Object.assign({}, it), { artwork: getCoverArtUrl(it.coverArt) });
+}
+function formatPlaylistItem(it) {
+    return {
+        id: it.id,
+        artist: it.owner,
+        title: it.name,
+        artwork: getCoverArtUrl(it.coverArt),
+        playCount: 0,
+        createTime: it.created,
+        description: it.comment,
+    };
 }
 async function searchMusic(query, page) {
     const data = await httpGet("search2", {
@@ -114,6 +125,15 @@ async function getLyric(musicItem) {
         rawLrc: convertToLRC(lyricLines),
     };
 }
+async function getRecommendSheetsByTag(tagItem) {
+    var _a, _b;
+    const data = await httpGet("getPlaylists");
+    const playlist = (_a = data["subsonic-response"].playlists) === null || _a === void 0 ? void 0 : _a.playlist;
+    return {
+        isEnd: true,
+        data: (_b = playlist === null || playlist === void 0 ? void 0 : playlist.map(formatPlaylistItem)) !== null && _b !== void 0 ? _b : [],
+    };
+}
 module.exports = {
     platform: "Navidrome",
     version: "0.0.1",
@@ -141,4 +161,5 @@ module.exports = {
     getMediaSource,
     getMusicInfo,
     getLyric,
+    getRecommendSheetsByTag,
 };

@@ -33,7 +33,7 @@ function getRequestURL(urlPath) {
     CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex)
   );
   urlObj.searchParams.append("c", "MusicFree-PigNavidrome");
-  urlObj.searchParams.append("v", "1.8.0");
+  urlObj.searchParams.append("v", "1.14.0");
   urlObj.searchParams.append("f", "json");
   return urlObj;
 }
@@ -69,6 +69,18 @@ function formatAlbumItem(it) {
   return {
     ...it,
     artwork: getCoverArtUrl(it.coverArt),
+  };
+}
+
+function formatPlaylistItem(it) {
+  return {
+    id: it.id,
+    artist: it.owner,
+    title: it.name,
+    artwork: getCoverArtUrl(it.coverArt),
+    playCount: 0,
+    createTime: it.created,
+    description: it.comment,
   };
 }
 
@@ -163,6 +175,18 @@ async function getLyric(musicItem) {
   };
 }
 
+async function getRecommendSheetsByTag(tagItem) {
+  // 获取某个 tag 下的所有歌单
+  const data = await httpGet("getPlaylists");
+
+  const playlist = data["subsonic-response"].playlists?.playlist;
+
+  return {
+    isEnd: true,
+    data: playlist?.map(formatPlaylistItem) ?? [],
+  };
+}
+
 module.exports = {
   platform: "Navidrome",
   version: "0.0.1",
@@ -191,4 +215,5 @@ module.exports = {
   getMediaSource,
   getMusicInfo,
   getLyric,
+  getRecommendSheetsByTag,
 };
