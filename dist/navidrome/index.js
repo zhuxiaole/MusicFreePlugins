@@ -266,7 +266,15 @@ async function search(query, page, type) {
         return await searchArtist(query, page);
     }
 }
+async function scrobble(id) {
+    await service.get("/rest/scrobble", {
+        params: {
+            id: id,
+        },
+    });
+}
 async function getMediaSource(musicItem) {
+    scrobble(musicItem.id);
     const urlObj = getRequestURL("stream");
     urlObj.searchParams.append("id", musicItem.id);
     return {
