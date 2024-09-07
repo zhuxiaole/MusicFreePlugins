@@ -85,13 +85,13 @@ function formatPlaylistItem(it) {
 }
 
 async function searchMusic(query, page) {
-  const data = await httpGet("search2", {
+  const data = await httpGet("search3", {
     query,
     songCount: pageSize,
     songOffset: (page - 1) * pageSize,
   });
 
-  const songs = data["subsonic-response"].searchResult2.song;
+  const songs = data["subsonic-response"].searchResult3.song;
 
   return {
     isEnd: songs.length < pageSize,
