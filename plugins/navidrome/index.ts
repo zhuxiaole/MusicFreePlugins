@@ -77,6 +77,7 @@ function formatAlbumItem(it) {
     artist: it.artist,
     artwork: getCoverArtUrl(it.coverArt),
     worksNums: it.songCount,
+    description: it.comment,
   };
 }
 
@@ -281,6 +282,107 @@ async function getArtistWorks(artistItem, _, type) {
   }
 }
 
+function formatAlbumSheetItem(it) {
+  return {
+    id: it.id,
+    description: it.artist,
+    title: it.title,
+    coverImg: getCoverArtUrl(it.coverArt),
+    type: "album",
+  };
+}
+
+// 获取专辑榜单
+async function getAlbumSheetList(type, page, size) {
+  const data = await httpGet("getAlbumList2", {
+    type: type,
+    size: size,
+    offset: (page - 1) * size,
+  });
+
+  const album = data["subsonic-response"]?.albumList2?.album;
+
+  return album?.map(formatAlbumSheetItem) ?? [];
+}
+
+/// 榜单列表
+async function getTopLists() {
+  const result = [];
+
+  // 最近播放的专辑
+  const recentList = getAlbumSheetList("recent", 1, 10);
+  // 收藏专辑
+  const starredList = getAlbumSheetList("starred", 1, 10);
+  // 专辑评分排行
+  const ratedList = getAlbumSheetList("highest", 1, 10);
+  // 专辑最多播放
+  const frequentList = getAlbumSheetList("frequent", 1, 10);
+  // 最近添加的专辑
+  const newestList = getAlbumSheetList("newest", 1, 10);
+  // 随机专辑
+  const randomList = getAlbumSheetList("random", 1, 10);
+
+  const datas = await Promise.all([
+    recentList,
+    starredList,
+    ratedList,
+    frequentList,
+    newestList,
+    randomList,
+  ]);
+
+  if (datas[0]?.length > 0) {
+    result.push({
+      title: "最近播放的专辑",
+      data: datas[0],
+    });
+  }
+
+  if (datas[1]?.length > 0) {
+    result.push({
+      title: "收藏专辑",
+      data: datas[1],
+    });
+  }
+
+  if (datas[2]?.length > 0) {
+    result.push({
+      title: "专辑评分排行",
+      data: datas[2],
+    });
+  }
+
+  if (datas[3]?.length > 0) {
+    result.push({
+      title: "播放最多的专辑",
+      data: datas[3],
+    });
+  }
+
+  if (datas[4]?.length > 0) {
+    result.push({
+      title: "最近添加的专辑",
+      data: datas[4],
+    });
+  }
+
+  if (datas[5]?.length > 0) {
+    result.push({
+      title: "随机专辑",
+      data: datas[5],
+    });
+  }
+
+  return result;
+}
+
+// 获取榜单详情
+async function getTopListDetail(topListItem, page) {
+  if (topListItem.type === "album") {
+    return await getAlbumInfo(topListItem, page);
+  }
+}
+
 module.exports = {
   platform: "Navidrome",
   version: "0.0.1",
@@ -313,4 +415,6 @@ module.exports = {
   getRecommendSheetsByTag,
   getMusicSheetInfo,
   getArtistWorks,
+  getTopLists,
+  getTopListDetail,
 };

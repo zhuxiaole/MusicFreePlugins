@@ -59,6 +59,7 @@ function formatAlbumItem(it) {
         artist: it.artist,
         artwork: getCoverArtUrl(it.coverArt),
         worksNums: it.songCount,
+        description: it.comment,
     };
 }
 function formatArtistItem(it) {
@@ -227,6 +228,85 @@ async function getArtistWorks(artistItem, _, type) {
         return await getArtistAlbums(artistItem);
     }
 }
+function formatAlbumSheetItem(it) {
+    return {
+        id: it.id,
+        description: it.artist,
+        title: it.title,
+        coverImg: getCoverArtUrl(it.coverArt),
+        type: "album",
+    };
+}
+async function getAlbumSheetList(type, page, size) {
+    var _a, _b, _c;
+    const data = await httpGet("getAlbumList2", {
+        type: type,
+        size: size,
+        offset: (page - 1) * size,
+    });
+    const album = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.albumList2) === null || _b === void 0 ? void 0 : _b.album;
+    return (_c = album === null || album === void 0 ? void 0 : album.map(formatAlbumSheetItem)) !== null && _c !== void 0 ? _c : [];
+}
+async function getTopLists() {
+    var _a, _b, _c, _d, _e, _f;
+    const result = [];
+    const recentList = getAlbumSheetList("recent", 1, 10);
+    const starredList = getAlbumSheetList("starred", 1, 10);
+    const ratedList = getAlbumSheetList("highest", 1, 10);
+    const frequentList = getAlbumSheetList("frequent", 1, 10);
+    const newestList = getAlbumSheetList("newest", 1, 10);
+    const randomList = getAlbumSheetList("random", 1, 10);
+    const datas = await Promise.all([
+        recentList,
+        starredList,
+        ratedList,
+        frequentList,
+        newestList,
+        randomList,
+    ]);
+    if (((_a = datas[0]) === null || _a === void 0 ? void 0 : _a.length) > 0) {
+        result.push({
+            title: "最近播放的专辑",
+            data: datas[0],
+        });
+    }
+    if (((_b = datas[1]) === null || _b === void 0 ? void 0 : _b.length) > 0) {
+        result.push({
+            title: "收藏专辑",
+            data: datas[1],
+        });
+    }
+    if (((_c = datas[2]) === null || _c === void 0 ? void 0 : _c.length) > 0) {
+        result.push({
+            title: "专辑评分排行",
+            data: datas[2],
+        });
+    }
+    if (((_d = datas[3]) === null || _d === void 0 ? void 0 : _d.length) > 0) {
+        result.push({
+            title: "播放最多的专辑",
+            data: datas[3],
+        });
+    }
+    if (((_e = datas[4]) === null || _e === void 0 ? void 0 : _e.length) > 0) {
+        result.push({
+            title: "最近添加的专辑",
+            data: datas[4],
+        });
+    }
+    if (((_f = datas[5]) === null || _f === void 0 ? void 0 : _f.length) > 0) {
+        result.push({
+            title: "随机专辑",
+            data: datas[5],
+        });
+    }
+    return result;
+}
+async function getTopListDetail(topListItem, page) {
+    if (topListItem.type === "album") {
+        return await getAlbumInfo(topListItem, page);
+    }
+}
 module.exports = {
     platform: "Navidrome",
     version: "0.0.1",
@@ -258,4 +338,6 @@ module.exports = {
     getRecommendSheetsByTag,
     getMusicSheetInfo,
     getArtistWorks,
+    getTopLists,
+    getTopListDetail,
 };
