@@ -309,7 +309,7 @@ async function getTopListDetail(topListItem, page) {
 }
 module.exports = {
     platform: "Navidrome",
-    version: "0.0.1",
+    version: "0.0.2",
     author: "猪小乐",
     appVersion: ">0.1.0-alpha.0",
     srcUrl: "https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js",
