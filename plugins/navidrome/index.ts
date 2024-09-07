@@ -246,9 +246,12 @@ function formatAlbumItem(it) {
     id: it.id,
     title: it.name,
     artist: it.artist,
-    artwork: getCoverArtUrl(it.coverArt),
+    artistId: it.artistId,
+    artwork: getCoverArtUrl(it.id),
     worksNums: it.songCount,
-    description: it.comment,
+    duration: it.duration,
+    date: it.date,
+    description: it.comment ? it.comment : "",
   };
 }
 
@@ -462,26 +465,29 @@ async function getMusicSheetInfo(sheetItem, _) {
   };
 }
 
-async function getArtistAlbums(artistItem) {
+async function getArtistAlbums(artistItem, page) {
+  const startIndex = (page - 1) * pageSize;
   const data = (
-    await service.get("/rest/getArtist", {
+    await service.get("/api/album", {
       params: {
-        id: artistItem.id,
+        artist_id: artistItem.id,
+        _start: startIndex,
+        _end: startIndex + pageSize,
+        _order: "ASC",
+        _sort: "max_year asc,date asc",
       },
     })
   ).data;
 
-  const album = data["subsonic-response"]?.artist?.album;
-
   return {
-    isEnd: true,
-    data: album?.map(formatAlbumItem) ?? [],
+    isEnd: data == null ? true : data.length < pageSize,
+    data: data?.map(formatAlbumItem) ?? [],
   };
 }
 
-async function getArtistWorks(artistItem, _, type) {
+async function getArtistWorks(artistItem, page, type) {
   if (type === "album") {
-    return await getArtistAlbums(artistItem);
+    return await getArtistAlbums(artistItem, page);
   }
 }
 

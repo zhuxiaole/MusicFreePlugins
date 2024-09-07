@@ -43,18 +43,18 @@ navidrome.setUserVariables({
 //     console.log(res);
 //   });
 
-// navidrome
-//   .getArtistWorks(
-//     {
-//       id: "b68aba47f332d118ad655dcfa1029afc",
-//     },
-//     1,
-//     "album"
-//   )
-//   .then((res) => {
-//     console.log(res);
-//   });
+navidrome
+  .getArtistWorks(
+    {
+      id: "b68aba47f332d118ad655dcfa1029afc",
+    },
+    1,
+    "album"
+  )
+  .then((res) => {
+    console.log(res);
+  });
 
-navidrome.getTopLists().then((res) => {
-  console.log(res);
-});
+// navidrome.getTopLists().then((res) => {
+//   console.log(res);
+// });

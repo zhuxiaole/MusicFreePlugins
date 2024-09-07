@@ -165,9 +165,12 @@ function formatAlbumItem(it) {
         id: it.id,
         title: it.name,
         artist: it.artist,
-        artwork: getCoverArtUrl(it.coverArt),
+        artistId: it.artistId,
+        artwork: getCoverArtUrl(it.id),
         worksNums: it.songCount,
-        description: it.comment,
+        duration: it.duration,
+        date: it.date,
+        description: it.comment ? it.comment : "",
     };
 }
 function formatArtistItem(it) {
@@ -334,22 +337,26 @@ async function getMusicSheetInfo(sheetItem, _) {
         },
     };
 }
-async function getArtistAlbums(artistItem) {
-    var _a, _b, _c;
-    const data = (await service.get("/rest/getArtist", {
+async function getArtistAlbums(artistItem, page) {
+    var _a;
+    const startIndex = (page - 1) * pageSize;
+    const data = (await service.get("/api/album", {
         params: {
-            id: artistItem.id,
+            artist_id: artistItem.id,
+            _start: startIndex,
+            _end: startIndex + pageSize,
+            _order: "ASC",
+            _sort: "max_year asc,date asc",
         },
     })).data;
-    const album = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.artist) === null || _b === void 0 ? void 0 : _b.album;
     return {
-        isEnd: true,
-        data: (_c = album === null || album === void 0 ? void 0 : album.map(formatAlbumItem)) !== null && _c !== void 0 ? _c : [],
+        isEnd: data == null ? true : data.length < pageSize,
+        data: (_a = data === null || data === void 0 ? void 0 : data.map(formatAlbumItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
-async function getArtistWorks(artistItem, _, type) {
+async function getArtistWorks(artistItem, page, type) {
     if (type === "album") {
-        return await getArtistAlbums(artistItem);
+        return await getArtistAlbums(artistItem, page);
     }
 }
 function formatAlbumSheetItem(it) {
