@@ -59,27 +59,29 @@ function formatPlaylistItem(it) {
     };
 }
 async function searchMusic(query, page) {
+    var _a, _b, _c;
     const data = await httpGet("search3", {
         query,
         songCount: pageSize,
         songOffset: (page - 1) * pageSize,
     });
-    const songs = data["subsonic-response"].searchResult3.song;
+    const songs = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.song;
     return {
-        isEnd: songs.length < pageSize,
-        data: songs.map(formatMusicItem),
+        isEnd: songs == null ? true : songs.length < pageSize,
+        data: (_c = songs === null || songs === void 0 ? void 0 : songs.map(formatMusicItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
 async function searchAlbum(query, page) {
-    const data = await httpGet("search2", {
+    var _a, _b, _c;
+    const data = await httpGet("search3", {
         query,
         albumCount: pageSize,
         albumOffset: (page - 1) * pageSize,
     });
-    const songs = data["subsonic-response"].searchResult2.album;
+    const songs = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.album;
     return {
-        isEnd: songs.length < pageSize,
-        data: songs.map(formatAlbumItem),
+        isEnd: songs == null ? true : songs.length < pageSize,
+        data: (_c = songs === null || songs === void 0 ? void 0 : songs.map(formatAlbumItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
 async function search(query, page, type) {
@@ -98,10 +100,11 @@ async function getMediaSource(musicItem) {
     };
 }
 async function getMusicInfo(musicItem) {
+    var _a;
     const data = await httpGet("getSong", {
         id: musicItem.id,
     });
-    const song = data["subsonic-response"].song;
+    const song = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.song;
     return formatMusicItem(song);
 }
 function convertToLRC(jsonLyrics) {
@@ -126,12 +129,27 @@ async function getLyric(musicItem) {
     };
 }
 async function getRecommendSheetsByTag(tagItem) {
-    var _a, _b;
+    var _a, _b, _c;
     const data = await httpGet("getPlaylists");
-    const playlist = (_a = data["subsonic-response"].playlists) === null || _a === void 0 ? void 0 : _a.playlist;
+    const playlist = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.playlists) === null || _b === void 0 ? void 0 : _b.playlist;
     return {
         isEnd: true,
-        data: (_b = playlist === null || playlist === void 0 ? void 0 : playlist.map(formatPlaylistItem)) !== null && _b !== void 0 ? _b : [],
+        data: (_c = playlist === null || playlist === void 0 ? void 0 : playlist.map(formatPlaylistItem)) !== null && _c !== void 0 ? _c : [],
+    };
+}
+async function getMusicSheetInfo(sheetItem, _) {
+    var _a, _b, _c;
+    const data = await httpGet("getPlaylist", {
+        id: sheetItem.id,
+    });
+    const playlist = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.playlist;
+    const entry = playlist === null || playlist === void 0 ? void 0 : playlist.entry;
+    return {
+        isEnd: true,
+        musicList: (_b = entry === null || entry === void 0 ? void 0 : entry.map(formatMusicItem)) !== null && _b !== void 0 ? _b : [],
+        sheetItem: {
+            worksNums: (_c = playlist === null || playlist === void 0 ? void 0 : playlist.songCount) !== null && _c !== void 0 ? _c : 0,
+        },
     };
 }
 module.exports = {
@@ -162,4 +180,5 @@ module.exports = {
     getMusicInfo,
     getLyric,
     getRecommendSheetsByTag,
+    getMusicSheetInfo,
 };

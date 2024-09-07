@@ -91,26 +91,26 @@ async function searchMusic(query, page) {
     songOffset: (page - 1) * pageSize,
   });
 
-  const songs = data["subsonic-response"].searchResult3.song;
+  const songs = data["subsonic-response"]?.searchResult3?.song;
 
   return {
-    isEnd: songs.length < pageSize,
-    data: songs.map(formatMusicItem),
+    isEnd: songs == null ? true : songs.length < pageSize,
+    data: songs?.map(formatMusicItem) ?? [],
   };
 }
 
 async function searchAlbum(query, page) {
-  const data = await httpGet("search2", {
+  const data = await httpGet("search3", {
     query,
     albumCount: pageSize,
     albumOffset: (page - 1) * pageSize,
   });
 
-  const songs = data["subsonic-response"].searchResult2.album;
+  const songs = data["subsonic-response"]?.searchResult3?.album;
 
   return {
-    isEnd: songs.length < pageSize,
-    data: songs.map(formatAlbumItem),
+    isEnd: songs == null ? true : songs.length < pageSize,
+    data: songs?.map(formatAlbumItem) ?? [],
   };
 }
 
@@ -137,7 +137,7 @@ async function getMusicInfo(musicItem) {
     id: musicItem.id,
   });
 
-  const song = data["subsonic-response"].song;
+  const song = data["subsonic-response"]?.song;
 
   return formatMusicItem(song);
 }
@@ -179,11 +179,28 @@ async function getRecommendSheetsByTag(tagItem) {
   // 获取某个 tag 下的所有歌单
   const data = await httpGet("getPlaylists");
 
-  const playlist = data["subsonic-response"].playlists?.playlist;
+  const playlist = data["subsonic-response"]?.playlists?.playlist;
 
   return {
     isEnd: true,
     data: playlist?.map(formatPlaylistItem) ?? [],
+  };
+}
+
+async function getMusicSheetInfo(sheetItem, _) {
+  const data = await httpGet("getPlaylist", {
+    id: sheetItem.id,
+  });
+
+  const playlist = data["subsonic-response"]?.playlist;
+  const entry = playlist?.entry;
+
+  return {
+    isEnd: true,
+    musicList: entry?.map(formatMusicItem) ?? [],
+    sheetItem: {
+      worksNums: playlist?.songCount ?? 0,
+    },
   };
 }
 
@@ -216,4 +233,5 @@ module.exports = {
   getMusicInfo,
   getLyric,
   getRecommendSheetsByTag,
+  getMusicSheetInfo,
 };

@@ -19,9 +19,17 @@ navidrome.setUserVariables({
 //     console.log(res);
 //   });
 
+// navidrome
+//   .getRecommendSheetsByTag({
+//     tag: "",
+//   })
+//   .then((res) => {
+//     console.log(res);
+//   });
+
 navidrome
-  .getRecommendSheetsByTag({
-    tag: "",
+  .getMusicSheetInfo({
+    id: "17efeea7-bf36-456f-92bf-8a9d80658fd9",
   })
   .then((res) => {
     console.log(res);
