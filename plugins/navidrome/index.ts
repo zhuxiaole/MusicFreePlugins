@@ -145,6 +145,24 @@ async function getMusicInfo(musicItem) {
   return formatMusicItem(song);
 }
 
+async function getAlbumInfo(albumItem, _) {
+  const data = await httpGet("getAlbum", {
+    id: albumItem.id,
+  });
+
+  const album = data["subsonic-response"]?.album;
+  const song = album?.song;
+
+  return {
+    isEnd: true,
+    musicList: song?.map(formatMusicItem) ?? [],
+    sheetItem: {
+      worksNums: album?.songCount ?? 0,
+      playCount: album?.playCount ?? 0,
+    },
+  };
+}
+
 function convertToLRC(jsonLyrics) {
   let lrcLyrics = "";
 
@@ -234,6 +252,7 @@ module.exports = {
   search,
   getMediaSource,
   getMusicInfo,
+  getAlbumInfo,
   getLyric,
   getRecommendSheetsByTag,
   getMusicSheetInfo,

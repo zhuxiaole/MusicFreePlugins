@@ -113,6 +113,22 @@ async function getMusicInfo(musicItem) {
     const song = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.song;
     return formatMusicItem(song);
 }
+async function getAlbumInfo(albumItem, _) {
+    var _a, _b, _c, _d;
+    const data = await httpGet("getAlbum", {
+        id: albumItem.id,
+    });
+    const album = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.album;
+    const song = album === null || album === void 0 ? void 0 : album.song;
+    return {
+        isEnd: true,
+        musicList: (_b = song === null || song === void 0 ? void 0 : song.map(formatMusicItem)) !== null && _b !== void 0 ? _b : [],
+        sheetItem: {
+            worksNums: (_c = album === null || album === void 0 ? void 0 : album.songCount) !== null && _c !== void 0 ? _c : 0,
+            playCount: (_d = album === null || album === void 0 ? void 0 : album.playCount) !== null && _d !== void 0 ? _d : 0,
+        },
+    };
+}
 function convertToLRC(jsonLyrics) {
     let lrcLyrics = "";
     jsonLyrics === null || jsonLyrics === void 0 ? void 0 : jsonLyrics.forEach((lyric) => {
@@ -184,6 +200,7 @@ module.exports = {
     search,
     getMediaSource,
     getMusicInfo,
+    getAlbumInfo,
     getLyric,
     getRecommendSheetsByTag,
     getMusicSheetInfo,
