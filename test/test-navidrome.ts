@@ -7,9 +7,9 @@ navidrome.setUserVariables({
   password: test.navidrome.password,
 });
 
-// navidrome.search("陈一发", 1, "artist").then((res) => {
-//   console.log(res);
-// });
+navidrome.search("陈一发", 1, "artist").then((res) => {
+  console.log(res);
+});
 
 // navidrome
 //   .getLyric({
@@ -35,13 +35,13 @@ navidrome.setUserVariables({
 //     console.log(res);
 //   });
 
-navidrome
-  .getAlbumInfo({
-    id: "0f221edbbab7def63f003acf76f8ce32",
-  })
-  .then((res) => {
-    console.log(res);
-  });
+// navidrome
+//   .getAlbumInfo({
+//     id: "0f221edbbab7def63f003acf76f8ce32",
+//   })
+//   .then((res) => {
+//     console.log(res);
+//   });
 
 // navidrome
 //   .getArtistWorks(

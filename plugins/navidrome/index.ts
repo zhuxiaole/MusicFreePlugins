@@ -260,7 +260,8 @@ function formatArtistItem(it) {
   return {
     id: it.id,
     name: it.name,
-    avatar: it.artistImageUrl,
+    avatar: getCoverArtUrl(it.id),
+    worksNum: it.songCount,
   };
 }
 
@@ -319,23 +320,20 @@ async function searchAlbum(query, page) {
 }
 
 async function searchArtist(query, page) {
+  const startIndex = (page - 1) * pageSize;
   const data = (
-    await service.get("/rest/search3", {
+    await service.get("/api/artist", {
       params: {
-        query,
-        artistCount: pageSize,
-        artistOffset: (page - 1) * pageSize,
-        songCount: 0,
-        albumCount: 0,
+        name: query,
+        _start: startIndex,
+        _end: startIndex + pageSize,
       },
     })
   ).data;
 
-  const artist = data["subsonic-response"]?.searchResult3?.artist;
-
   return {
-    isEnd: artist == null ? true : artist.length < pageSize,
-    data: artist?.map(formatArtistItem) ?? [],
+    isEnd: data == null ? true : data.length < pageSize,
+    data: data?.map(formatArtistItem) ?? [],
   };
 }
 

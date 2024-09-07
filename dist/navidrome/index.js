@@ -178,7 +178,8 @@ function formatArtistItem(it) {
     return {
         id: it.id,
         name: it.name,
-        avatar: it.artistImageUrl,
+        avatar: getCoverArtUrl(it.id),
+        worksNum: it.songCount,
     };
 }
 function formatPlaylistItem(it) {
@@ -227,20 +228,18 @@ async function searchAlbum(query, page) {
     };
 }
 async function searchArtist(query, page) {
-    var _a, _b, _c;
-    const data = (await service.get("/rest/search3", {
+    var _a;
+    const startIndex = (page - 1) * pageSize;
+    const data = (await service.get("/api/artist", {
         params: {
-            query,
-            artistCount: pageSize,
-            artistOffset: (page - 1) * pageSize,
-            songCount: 0,
-            albumCount: 0,
+            name: query,
+            _start: startIndex,
+            _end: startIndex + pageSize,
         },
     })).data;
-    const artist = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.artist;
     return {
-        isEnd: artist == null ? true : artist.length < pageSize,
-        data: (_c = artist === null || artist === void 0 ? void 0 : artist.map(formatArtistItem)) !== null && _c !== void 0 ? _c : [],
+        isEnd: data == null ? true : data.length < pageSize,
+        data: (_a = data === null || data === void 0 ? void 0 : data.map(formatArtistItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function search(query, page, type) {
