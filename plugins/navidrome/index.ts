@@ -105,6 +105,8 @@ async function searchMusic(query, page) {
     query,
     songCount: pageSize,
     songOffset: (page - 1) * pageSize,
+    artistCount: 0,
+    albumCount: 0,
   });
 
   const songs = data["subsonic-response"]?.searchResult3?.song;
@@ -120,6 +122,8 @@ async function searchAlbum(query, page) {
     query,
     albumCount: pageSize,
     albumOffset: (page - 1) * pageSize,
+    songCount: 0,
+    artistCount: 0,
   });
 
   const albums = data["subsonic-response"]?.searchResult3?.album;
@@ -135,6 +139,8 @@ async function searchArtist(query, page) {
     query,
     artistCount: pageSize,
     artistOffset: (page - 1) * pageSize,
+    songCount: 0,
+    albumCount: 0,
   });
 
   const artist = data["subsonic-response"]?.searchResult3?.artist;

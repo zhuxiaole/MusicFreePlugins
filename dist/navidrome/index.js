@@ -85,6 +85,8 @@ async function searchMusic(query, page) {
         query,
         songCount: pageSize,
         songOffset: (page - 1) * pageSize,
+        artistCount: 0,
+        albumCount: 0,
     });
     const songs = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.song;
     return {
@@ -98,6 +100,8 @@ async function searchAlbum(query, page) {
         query,
         albumCount: pageSize,
         albumOffset: (page - 1) * pageSize,
+        songCount: 0,
+        artistCount: 0,
     });
     const albums = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.album;
     return {
@@ -111,6 +115,8 @@ async function searchArtist(query, page) {
         query,
         artistCount: pageSize,
         artistOffset: (page - 1) * pageSize,
+        songCount: 0,
+        albumCount: 0,
     });
     const artist = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.artist;
     return {
