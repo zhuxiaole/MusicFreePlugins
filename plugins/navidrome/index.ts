@@ -1,11 +1,200 @@
-import axios from "axios";
-import CryptoJs = require("crypto-js");
+const axios = require("axios");
+const CryptoJs = require("crypto-js");
 
 const pageSize = 25;
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
+// 用户设置环境变量
 let userVars: Record<string, string> = null;
+
+// 唯一token请求
+let singletonTokenRequest = null;
+// 用户认证信息
+let authInfo = null;
+
+function getUserVariables() {
+  let result = userVars == null ? env?.getUserVariables() ?? {} : userVars;
+  if (
+    !result?.url?.startsWith("http://") &&
+    !result?.url?.startsWith("https://")
+  ) {
+    result.url = `http://${result.url}`;
+  }
+  return result;
+}
 
 function setUserVariables(userVariables: Record<string, string>) {
   userVars = userVariables;
+}
+
+function getBaseUrl() {
+  return getUserVariables()?.url;
+}
+
+function getNdUsername() {
+  return getUserVariables()?.username;
+}
+
+function getNdPassword() {
+  return getUserVariables()?.password;
+}
+
+function isSubsonicAuthInfoValid(info) {
+  return (
+    info &&
+    info.username &&
+    info.username.length > 0 &&
+    info.subsonicSalt &&
+    info.subsonicSalt.length > 0 &&
+    info.subsonicToken &&
+    info.subsonicToken.length > 0
+  );
+}
+
+function isNdAuthInfoValid(info) {
+  return info && info.ndToken && info.ndToken.length > 0;
+}
+
+function isLoginUrl(url) {
+  return url && url.startsWith("/auth/login");
+}
+
+function isSubsonicUrl(url) {
+  return url && url.startsWith("/rest");
+}
+
+function isNdUrl(url) {
+  return url && url.startsWith("/api");
+}
+
+// axios实例
+const service = axios.create({
+  timeout: 30000,
+  headers: { "User-Agent": UA },
+});
+
+// 请求拦截器
+service.interceptors.request.use(
+  async (config) => {
+    config.baseURL = getBaseUrl();
+
+    if (config.method === "post") {
+      config.headers["Content-Type"] = "application/json;charset=utf-8";
+    }
+
+    if (!isLoginUrl(config?.url)) {
+      if (
+        (isNdUrl(config?.url) && !isNdAuthInfoValid(authInfo)) ||
+        (isSubsonicUrl(config?.url) && !isSubsonicAuthInfoValid(authInfo))
+      ) {
+        // 请求token
+        await requestToken();
+      }
+
+      if (isSubsonicUrl(config?.url) && isSubsonicAuthInfoValid(authInfo)) {
+        config.params = {
+          u: authInfo?.username,
+          s: authInfo?.subsonicSalt,
+          t: authInfo?.subsonicToken,
+          c: "MusicFree-PigNavidrome",
+          v: "1.14.0",
+          f: "json",
+          ...config.params,
+        };
+      }
+
+      if (isNdUrl(config?.url) && isNdAuthInfoValid(authInfo)) {
+        // 设置头部 token
+        config.headers["x-nd-authorization"] = `Bearer ${authInfo.ndToken}`;
+      }
+    }
+    return Promise.resolve(config);
+  },
+  (error: any) => {
+    return Promise.reject(error);
+  }
+);
+
+// 响应拦截器
+service.interceptors.response.use(
+  async (response) => {
+    return Promise.resolve(response);
+  },
+  async (error: any) => {
+    if (error?.response?.status === 401) {
+      // token 失效处理
+      if (!isLoginUrl(error.config.url)) {
+        // 1. 刷新 token
+        const tokenInfo = await requestToken();
+        if (isNdUrl(error.config.url) && isNdAuthInfoValid(tokenInfo)) {
+          // token 有效
+          // 2.1 重构请求头
+          error.config.headers[
+            "x-nd-authorization"
+          ] = `Bearer ${authInfo.ndToken}`;
+          // 2.2 请求
+          return await service.request(error.config);
+        } else if (
+          isSubsonicUrl(error.config.url) &&
+          isSubsonicAuthInfoValid(tokenInfo)
+        ) {
+          // token 有效
+          // 2.1 重构请求参数
+          error.config.params = {
+            u: authInfo?.username,
+            s: authInfo?.subsonicSalt,
+            t: authInfo?.subsonicToken,
+            c: "MusicFree-PigNavidrome",
+            v: "1.14.0",
+            f: "json",
+            ...error.config.params,
+          };
+
+          // 2.2 请求
+          return await service.request(error.config);
+        }
+      }
+      authInfo = null;
+    }
+    return Promise.reject(error);
+  }
+);
+
+function requestToken(): Promise<any> {
+  // 如果 singletonTokenRequest 不为 null 说明已经在刷新中，直接返回
+  if (singletonTokenRequest !== null) {
+    return singletonTokenRequest;
+  }
+
+  let { _, username, password } = getUserVariables();
+
+  // 设置 singletonTokenRequest 为一个 Promise 对象 , 处理刷新 token 请求
+  singletonTokenRequest = new Promise<any>(async (resolve) => {
+    await service
+      .post("/auth/login", {
+        username,
+        password,
+      })
+      .then(({ data }) => {
+        // 设置刷新后的Token
+        authInfo = {
+          username: data?.username,
+          ndToken: data?.token,
+          subsonicSalt: data?.subsonicSalt,
+          subsonicToken: data?.subsonicToken,
+        };
+        // 刷新路由
+        resolve(data);
+      })
+      .catch(() => {
+        authInfo = null;
+      });
+  });
+  // 最终将 singletonTokenRequest 设置为 null, 防止 singletonTokenRequest 一直占用
+  singletonTokenRequest.finally(() => {
+    singletonTokenRequest = null;
+  });
+  return singletonTokenRequest;
 }
 
 function genSalt() {
@@ -13,14 +202,9 @@ function genSalt() {
 }
 
 function getRequestURL(urlPath) {
-  const userVariables =
-    userVars == null ? env?.getUserVariables() ?? {} : userVars;
-  let { url, username, password } = userVariables;
+  let { url, username, password } = getUserVariables();
   if (!(url && username && password)) {
     return null;
-  }
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    url = `http://${url}`;
   }
 
   const salt = genSalt();
@@ -43,19 +227,6 @@ function getCoverArtUrl(coverArt) {
   urlObj.searchParams.append("id", coverArt);
   urlObj.searchParams.append("size", "300");
   return urlObj.toString();
-}
-
-async function httpGet(
-  urlPath: string,
-  params?: Record<string, string | number | boolean>
-) {
-  return (
-    await axios.get(getRequestURL(urlPath).toString(), {
-      params: {
-        ...params,
-      },
-    })
-  ).data;
 }
 
 function formatMusicItem(it) {
@@ -102,13 +273,17 @@ function formatPlaylistItem(it) {
 }
 
 async function searchMusic(query, page) {
-  const data = await httpGet("search3", {
-    query,
-    songCount: pageSize,
-    songOffset: (page - 1) * pageSize,
-    artistCount: 0,
-    albumCount: 0,
-  });
+  const data = (
+    await service.get("/rest/search3", {
+      params: {
+        query,
+        songCount: pageSize,
+        songOffset: (page - 1) * pageSize,
+        artistCount: 0,
+        albumCount: 0,
+      },
+    })
+  ).data;
 
   const songs = data["subsonic-response"]?.searchResult3?.song;
 
@@ -119,13 +294,17 @@ async function searchMusic(query, page) {
 }
 
 async function searchAlbum(query, page) {
-  const data = await httpGet("search3", {
-    query,
-    albumCount: pageSize,
-    albumOffset: (page - 1) * pageSize,
-    songCount: 0,
-    artistCount: 0,
-  });
+  const data = (
+    await service.get("/rest/search3", {
+      params: {
+        query,
+        albumCount: pageSize,
+        albumOffset: (page - 1) * pageSize,
+        songCount: 0,
+        artistCount: 0,
+      },
+    })
+  ).data;
 
   const albums = data["subsonic-response"]?.searchResult3?.album;
 
@@ -136,13 +315,17 @@ async function searchAlbum(query, page) {
 }
 
 async function searchArtist(query, page) {
-  const data = await httpGet("search3", {
-    query,
-    artistCount: pageSize,
-    artistOffset: (page - 1) * pageSize,
-    songCount: 0,
-    albumCount: 0,
-  });
+  const data = (
+    await service.get("/rest/search3", {
+      params: {
+        query,
+        artistCount: pageSize,
+        artistOffset: (page - 1) * pageSize,
+        songCount: 0,
+        albumCount: 0,
+      },
+    })
+  ).data;
 
   const artist = data["subsonic-response"]?.searchResult3?.artist;
 
@@ -174,9 +357,13 @@ async function getMediaSource(musicItem) {
 }
 
 async function getMusicInfo(musicItem) {
-  const data = await httpGet("getSong", {
-    id: musicItem.id,
-  });
+  const data = (
+    await service.get("/rest/getSong", {
+      params: {
+        id: musicItem.id,
+      },
+    })
+  ).data;
 
   const song = data["subsonic-response"]?.song;
 
@@ -184,9 +371,13 @@ async function getMusicInfo(musicItem) {
 }
 
 async function getAlbumInfo(albumItem, _) {
-  const data = await httpGet("getAlbum", {
-    id: albumItem.id,
-  });
+  const data = (
+    await service.get("/rest/getAlbum", {
+      params: {
+        id: albumItem.id,
+      },
+    })
+  ).data;
 
   const album = data["subsonic-response"]?.album;
   const song = album?.song;
@@ -222,9 +413,13 @@ function convertToLRC(jsonLyrics) {
 }
 
 async function getLyric(musicItem) {
-  const data = await httpGet("getLyricsBySongId", {
-    id: musicItem.id,
-  });
+  const data = (
+    await service.get("/rest/getLyricsBySongId", {
+      params: {
+        id: musicItem.id,
+      },
+    })
+  ).data;
 
   const lyricLines =
     data["subsonic-response"]?.lyricsList?.structuredLyrics[0]?.line;
@@ -234,9 +429,9 @@ async function getLyric(musicItem) {
   };
 }
 
-async function getRecommendSheetsByTag(tagItem) {
+async function getRecommendSheetsByTag(_) {
   // 获取某个 tag 下的所有歌单
-  const data = await httpGet("getPlaylists");
+  const data = (await service.get("/rest/getPlaylists")).data;
 
   const playlist = data["subsonic-response"]?.playlists?.playlist;
 
@@ -247,9 +442,13 @@ async function getRecommendSheetsByTag(tagItem) {
 }
 
 async function getMusicSheetInfo(sheetItem, _) {
-  const data = await httpGet("getPlaylist", {
-    id: sheetItem.id,
-  });
+  const data = (
+    await service.get("/rest/getPlaylist", {
+      params: {
+        id: sheetItem.id,
+      },
+    })
+  ).data;
 
   const playlist = data["subsonic-response"]?.playlist;
   const entry = playlist?.entry;
@@ -264,9 +463,13 @@ async function getMusicSheetInfo(sheetItem, _) {
 }
 
 async function getArtistAlbums(artistItem) {
-  const data = await httpGet("getArtist", {
-    id: artistItem.id,
-  });
+  const data = (
+    await service.get("/rest/getArtist", {
+      params: {
+        id: artistItem.id,
+      },
+    })
+  ).data;
 
   const album = data["subsonic-response"]?.artist?.album;
 
@@ -294,11 +497,15 @@ function formatAlbumSheetItem(it) {
 
 // 获取专辑榜单
 async function getAlbumSheetList(type, page, size) {
-  const data = await httpGet("getAlbumList2", {
-    type: type,
-    size: size,
-    offset: (page - 1) * size,
-  });
+  const data = (
+    await service.get("/rest/getAlbumList2", {
+      params: {
+        type: type,
+        size: size,
+        offset: (page - 1) * size,
+      },
+    })
+  ).data;
 
   const album = data["subsonic-response"]?.albumList2?.album;
 
