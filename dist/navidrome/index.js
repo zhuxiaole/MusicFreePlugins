@@ -161,6 +161,18 @@ function formatMusicItem(it) {
         duration: it.duration,
     };
 }
+function formatPlaylistMusicItem(it) {
+    return {
+        id: it.mediaFileId,
+        title: it.title,
+        artist: it.artist,
+        artistId: it.artistId,
+        album: it.album,
+        albumid: it.albumId,
+        artwork: getCoverArtUrl(it.mediaFileId),
+        duration: it.duration,
+    };
+}
 function formatAlbumItem(it) {
     return {
         id: it.id,
@@ -189,6 +201,7 @@ function formatPlaylistItem(it) {
         title: it.name,
         artwork: getCoverArtUrl(it.id),
         playCount: it.playCount ? it.playCount : 0,
+        worksNums: it.songCount,
         createTime: it.createdAt,
         description: it.comment,
     };
@@ -333,21 +346,21 @@ async function getRecommendSheetsByTag(_, page) {
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
-async function getMusicSheetInfo(sheetItem, _) {
-    var _a, _b, _c;
-    const data = (await service.get("/rest/getPlaylist", {
+async function getMusicSheetInfo(sheetItem, page) {
+    var _a;
+    const startIndex = (page - 1) * pageSize;
+    const data = (await service.get(`/api/playlist/${sheetItem.id}/tracks`, {
         params: {
-            id: sheetItem.id,
+            playlist_id: sheetItem.id,
+            _start: startIndex,
+            _end: startIndex + pageSize,
+            _order: "ASC",
+            _sort: "id",
         },
     })).data;
-    const playlist = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.playlist;
-    const entry = playlist === null || playlist === void 0 ? void 0 : playlist.entry;
     return {
-        isEnd: true,
-        musicList: (_b = entry === null || entry === void 0 ? void 0 : entry.map(formatMusicItem)) !== null && _b !== void 0 ? _b : [],
-        sheetItem: {
-            worksNums: (_c = playlist === null || playlist === void 0 ? void 0 : playlist.songCount) !== null && _c !== void 0 ? _c : 0,
-        },
+        isEnd: data == null ? true : data.length < pageSize,
+        musicList: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistMusicItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function getArtistAlbums(artistItem, page) {

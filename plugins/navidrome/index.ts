@@ -242,6 +242,19 @@ function formatMusicItem(it) {
   };
 }
 
+function formatPlaylistMusicItem(it) {
+  return {
+    id: it.mediaFileId,
+    title: it.title,
+    artist: it.artist,
+    artistId: it.artistId,
+    album: it.album,
+    albumid: it.albumId,
+    artwork: getCoverArtUrl(it.mediaFileId),
+    duration: it.duration,
+  };
+}
+
 function formatAlbumItem(it) {
   return {
     id: it.id,
@@ -272,6 +285,7 @@ function formatPlaylistItem(it) {
     title: it.name,
     artwork: getCoverArtUrl(it.id),
     playCount: it.playCount ? it.playCount : 0,
+    worksNums: it.songCount,
     createTime: it.createdAt,
     description: it.comment,
   };
@@ -457,24 +471,23 @@ async function getRecommendSheetsByTag(_, page) {
   };
 }
 
-async function getMusicSheetInfo(sheetItem, _) {
+async function getMusicSheetInfo(sheetItem, page) {
+  const startIndex = (page - 1) * pageSize;
   const data = (
-    await service.get("/rest/getPlaylist", {
+    await service.get(`/api/playlist/${sheetItem.id}/tracks`, {
       params: {
-        id: sheetItem.id,
+        playlist_id: sheetItem.id,
+        _start: startIndex,
+        _end: startIndex + pageSize,
+        _order: "ASC",
+        _sort: "id",
       },
     })
   ).data;
 
-  const playlist = data["subsonic-response"]?.playlist;
-  const entry = playlist?.entry;
-
   return {
-    isEnd: true,
-    musicList: entry?.map(formatMusicItem) ?? [],
-    sheetItem: {
-      worksNums: playlist?.songCount ?? 0,
-    },
+    isEnd: data == null ? true : data.length < pageSize,
+    musicList: data?.map(formatPlaylistMusicItem) ?? [],
   };
 }
 

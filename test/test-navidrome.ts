@@ -19,24 +19,24 @@ navidrome.setUserVariables({
 //     console.log(res);
 //   });
 
-navidrome
-  .getRecommendSheetsByTag(
-    {
-      tag: "",
-    },
-    1
-  )
-  .then((res) => {
-    console.log(res);
-  });
-
 // navidrome
-//   .getMusicSheetInfo({
-//     id: "17efeea7-bf36-456f-92bf-8a9d80658fd9",
-//   })
+//   .getRecommendSheetsByTag(
+//     {
+//       tag: "",
+//     },
+//     1
+//   )
 //   .then((res) => {
 //     console.log(res);
 //   });
+
+navidrome
+  .getMusicSheetInfo({
+    id: "17efeea7-bf36-456f-92bf-8a9d80658fd9",
+  })
+  .then((res) => {
+    console.log(res);
+  });
 
 // navidrome
 //   .getAlbumInfo({
