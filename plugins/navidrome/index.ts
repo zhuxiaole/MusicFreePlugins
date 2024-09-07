@@ -384,17 +384,9 @@ async function getMediaSource(musicItem) {
 }
 
 async function getMusicInfo(musicItem) {
-  const data = (
-    await service.get("/rest/getSong", {
-      params: {
-        id: musicItem.id,
-      },
-    })
-  ).data;
+  const data = (await service.get(`/api/song/${musicItem.id}`)).data;
 
-  const song = data["subsonic-response"]?.song;
-
-  return formatMusicItem(song);
+  return formatMusicItem(data);
 }
 
 async function getAlbumInfo(albumItem, page) {

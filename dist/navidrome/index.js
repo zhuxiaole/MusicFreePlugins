@@ -282,14 +282,8 @@ async function getMediaSource(musicItem) {
     };
 }
 async function getMusicInfo(musicItem) {
-    var _a;
-    const data = (await service.get("/rest/getSong", {
-        params: {
-            id: musicItem.id,
-        },
-    })).data;
-    const song = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.song;
-    return formatMusicItem(song);
+    const data = (await service.get(`/api/song/${musicItem.id}`)).data;
+    return formatMusicItem(data);
 }
 async function getAlbumInfo(albumItem, page) {
     var _a, _b, _c, _d, _e;
