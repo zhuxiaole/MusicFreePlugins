@@ -49,6 +49,7 @@ function formatMusicItem(it) {
         album: it.album,
         albumid: it.albumId,
         artwork: getCoverArtUrl(it.coverArt),
+        duration: it.duration,
     };
 }
 function formatAlbumItem(it) {
