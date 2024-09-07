@@ -60,7 +60,11 @@ async function httpGet(
 
 function formatMusicItem(it) {
   return {
-    ...it,
+    id: it.id,
+    title: it.title,
+    artist: it.artist,
+    album: it.album,
+    albumid: it.albumId,
     artwork: getCoverArtUrl(it.coverArt),
   };
 }

@@ -42,7 +42,14 @@ async function httpGet(urlPath, params) {
     })).data;
 }
 function formatMusicItem(it) {
-    return Object.assign(Object.assign({}, it), { artwork: getCoverArtUrl(it.coverArt) });
+    return {
+        id: it.id,
+        title: it.title,
+        artist: it.artist,
+        album: it.album,
+        albumid: it.albumId,
+        artwork: getCoverArtUrl(it.coverArt),
+    };
 }
 function formatAlbumItem(it) {
     return {
