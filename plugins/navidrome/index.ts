@@ -377,6 +377,8 @@ async function getMediaSource(musicItem) {
 
   const urlObj = getRequestURL("stream");
   urlObj.searchParams.append("id", musicItem.id);
+  urlObj.searchParams.append("maxBitRate", "0");
+  urlObj.searchParams.append("format", "raw");
 
   return {
     url: urlObj.toString(),

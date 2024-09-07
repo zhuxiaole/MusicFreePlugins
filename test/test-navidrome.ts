@@ -62,18 +62,18 @@ navidrome.setUserVariables({
 //   console.log(res);
 // });
 
-// navidrome
-//   .getMediaSource({
-//     id: "4e65f766209106ba19283c99fb631813",
-//   })
-//   .then((res) => {
-//     console.log(res);
-//   });
-
 navidrome
-  .getMusicInfo({
+  .getMediaSource({
     id: "4e65f766209106ba19283c99fb631813",
   })
   .then((res) => {
     console.log(res);
   });
+
+// navidrome
+//   .getMusicInfo({
+//     id: "4e65f766209106ba19283c99fb631813",
+//   })
+//   .then((res) => {
+//     console.log(res);
+//   });
