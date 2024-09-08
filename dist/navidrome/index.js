@@ -80,19 +80,18 @@ service.interceptors.response.use(async function (response) {
 }, async function (error) {
     var _a;
     if (((_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.status) === 401) {
-        if (!isLoginUrl(error.config.url)) {
-            const tokenInfo = await requestToken();
-            if (isNdUrl(error.config.url) && isNdAuthInfoValid(tokenInfo)) {
-                error.config.headers["x-nd-authorization"] = `Bearer ${authInfo.ndToken}`;
-                return await service.request(error.config);
+        const ifNdUrl = isNdUrl(error.config.url);
+        const ifSubsonicUrl = isSubsonicUrl(error.config.url);
+        if (ifNdUrl || ifSubsonicUrl) {
+            if (!isLoginUrl(error.config.url)) {
+                await requestToken();
+                if ((ifNdUrl && isNdAuthInfoValid(authInfo)) ||
+                    (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo))) {
+                    return await service.request(error.config);
+                }
             }
-            else if (isSubsonicUrl(error.config.url) &&
-                isSubsonicAuthInfoValid(tokenInfo)) {
-                error.config.params = Object.assign({ u: authInfo === null || authInfo === void 0 ? void 0 : authInfo.username, s: authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt, t: authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken, c: "MusicFree-PigNavidrome", v: "1.14.0", f: "json" }, error.config.params);
-                return await service.request(error.config);
-            }
+            authInfo = null;
         }
-        authInfo = null;
     }
     return Promise.reject(error);
 });

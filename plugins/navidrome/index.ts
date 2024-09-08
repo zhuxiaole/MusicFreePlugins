@@ -122,39 +122,24 @@ service.interceptors.response.use(
   },
   async function (error: any) {
     if (error?.response?.status === 401) {
-      // token 失效处理
-      if (!isLoginUrl(error.config.url)) {
-        // 1. 刷新 token
-        const tokenInfo = await requestToken();
-        if (isNdUrl(error.config.url) && isNdAuthInfoValid(tokenInfo)) {
-          // token 有效
-          // 2.1 重构请求头
-          error.config.headers[
-            "x-nd-authorization"
-          ] = `Bearer ${authInfo.ndToken}`;
-          // 2.2 请求
-          return await service.request(error.config);
-        } else if (
-          isSubsonicUrl(error.config.url) &&
-          isSubsonicAuthInfoValid(tokenInfo)
-        ) {
-          // token 有效
-          // 2.1 重构请求参数
-          error.config.params = {
-            u: authInfo?.username,
-            s: authInfo?.subsonicSalt,
-            t: authInfo?.subsonicToken,
-            c: "MusicFree-PigNavidrome",
-            v: "1.14.0",
-            f: "json",
-            ...error.config.params,
-          };
+      const ifNdUrl = isNdUrl(error.config.url);
+      const ifSubsonicUrl = isSubsonicUrl(error.config.url);
 
-          // 2.2 请求
-          return await service.request(error.config);
+      // token 失效处理
+      if (ifNdUrl || ifSubsonicUrl) {
+        if (!isLoginUrl(error.config.url)) {
+          // 1. 刷新 token
+          await requestToken();
+          if (
+            (ifNdUrl && isNdAuthInfoValid(authInfo)) ||
+            (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo))
+          ) {
+            // token 有效，重新请求
+            return await service.request(error.config);
+          }
         }
+        authInfo = null;
       }
-      authInfo = null;
     }
     return Promise.reject(error);
   }
