@@ -267,7 +267,7 @@ function formatAlbumItem(it) {
     worksNums: it.songCount,
     duration: it.duration,
     date: it.date,
-    description: it.comment ? it.comment : "",
+    description: it.comment ?? "",
   };
 }
 
@@ -286,7 +286,7 @@ function formatPlaylistItem(it) {
     artist: it.ownerName,
     title: it.name,
     artwork: getCoverArtUrl(it.id),
-    playCount: it.playCount ? it.playCount : 0,
+    playCount: it.playCount ?? 0,
     worksNums: it.songCount,
     createTime: it.createdAt,
     description: it.comment,

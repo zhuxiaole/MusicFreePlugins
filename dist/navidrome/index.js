@@ -181,6 +181,7 @@ function formatPlaylistMusicItem(it) {
     };
 }
 function formatAlbumItem(it) {
+    var _a;
     return {
         id: it.id,
         title: it.name,
@@ -190,7 +191,7 @@ function formatAlbumItem(it) {
         worksNums: it.songCount,
         duration: it.duration,
         date: it.date,
-        description: it.comment ? it.comment : "",
+        description: (_a = it.comment) !== null && _a !== void 0 ? _a : "",
     };
 }
 function formatArtistItem(it) {
@@ -202,12 +203,13 @@ function formatArtistItem(it) {
     };
 }
 function formatPlaylistItem(it) {
+    var _a;
     return {
         id: it.id,
         artist: it.ownerName,
         title: it.name,
         artwork: getCoverArtUrl(it.id),
-        playCount: it.playCount ? it.playCount : 0,
+        playCount: (_a = it.playCount) !== null && _a !== void 0 ? _a : 0,
         worksNums: it.songCount,
         createTime: it.createdAt,
         description: it.comment,
