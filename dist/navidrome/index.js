@@ -223,6 +223,21 @@ async function searchMusic(query, page) {
         data: (_c = songs === null || songs === void 0 ? void 0 : songs.map(formatMusicItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
+async function searchSheet(query, page) {
+    var _a;
+    const startIndex = (page - 1) * pageSize;
+    const data = (await service.get("/api/playlist", {
+        params: {
+            q: query,
+            _start: startIndex,
+            _end: startIndex + pageSize,
+        },
+    })).data;
+    return {
+        isEnd: data == null ? true : data.length < pageSize,
+        data: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistItem)) !== null && _a !== void 0 ? _a : [],
+    };
+}
 async function searchAlbum(query, page) {
     var _a, _b, _c;
     const data = (await service.get("/rest/search3", {
@@ -264,6 +279,9 @@ async function search(query, page, type) {
     }
     if (type === "artist") {
         return await searchArtist(query, page);
+    }
+    if (type === "sheet") {
+        return await searchSheet(query, page);
     }
 }
 async function scrobble(id) {
@@ -511,7 +529,7 @@ module.exports = {
             name: "密码",
         },
     ],
-    supportedSearchType: ["music", "album", "artist"],
+    supportedSearchType: ["music", "album", "artist", "sheet"],
     setUserVariables,
     search,
     getMediaSource,
