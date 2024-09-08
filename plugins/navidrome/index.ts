@@ -824,7 +824,7 @@ type NdAuthInfo = {
 
 module.exports = {
   platform: "Navidrome",
-  version: "0.0.4",
+  version: "0.0.5",
   author: "猪小乐",
   appVersion: ">0.1.0-alpha.0",
   srcUrl:
