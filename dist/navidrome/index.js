@@ -1,12 +1,104 @@
 const axios = require("axios");
 const CryptoJs = require("crypto-js");
+const CookieManager = !(env === null || env === void 0 ? void 0 : env.debug)
+    ? require("@react-native-cookies/cookies")
+    : null;
 const PAGE_SIZE = 25;
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
 const SUBSONIC_API_C = "MusicFree-PigNavidrome";
 const SUBSONIC_API_V = "1.14.0";
 const SUBSONIC_API_F = "json";
 let singletonTokenRequest = null;
-let authInfo = null;
+const debugAuthInfo = genDefaultAuthInfo();
+function genDefaultAuthInfo() {
+    return {
+        ndBaseUrl: "",
+        ndUsername: "",
+        ndToken: "",
+        subsonicSalt: "",
+        subsonicToken: "",
+    };
+}
+function genAuthInfoFromLoginResp(baseUrl, loginResp) {
+    var _a, _b, _c, _d;
+    return {
+        ndBaseUrl: baseUrl !== null && baseUrl !== void 0 ? baseUrl : "",
+        ndUsername: (_a = loginResp === null || loginResp === void 0 ? void 0 : loginResp.username) !== null && _a !== void 0 ? _a : "",
+        ndToken: (_b = loginResp === null || loginResp === void 0 ? void 0 : loginResp.token) !== null && _b !== void 0 ? _b : "",
+        subsonicSalt: (_c = loginResp === null || loginResp === void 0 ? void 0 : loginResp.subsonicSalt) !== null && _c !== void 0 ? _c : "",
+        subsonicToken: (_d = loginResp === null || loginResp === void 0 ? void 0 : loginResp.subsonicToken) !== null && _d !== void 0 ? _d : "",
+    };
+}
+function storeAuthInfo(baseUrl, authInfo) {
+    var _a, _b, _c, _d, _e;
+    if (!CookieManager) {
+        return new Promise((resolve, reject) => {
+            var _a, _b, _c, _d, _e;
+            try {
+                debugAuthInfo.ndBaseUrl = (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "";
+                debugAuthInfo.ndUsername = (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) !== null && _b !== void 0 ? _b : "";
+                debugAuthInfo.ndToken = (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndToken) !== null && _c !== void 0 ? _c : "";
+                debugAuthInfo.subsonicSalt = (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt) !== null && _d !== void 0 ? _d : "";
+                debugAuthInfo.subsonicToken = (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "";
+                resolve("success");
+            }
+            catch (err) {
+                reject(err);
+            }
+        });
+    }
+    else {
+        const ndBaseUrlStore = CookieManager.set(baseUrl, {
+            name: "ndBaseUrl",
+            value: (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "",
+        });
+        const ndUsernameStore = CookieManager.set(baseUrl, {
+            name: "ndUsername",
+            value: (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) !== null && _b !== void 0 ? _b : "",
+        });
+        const ndTokenStore = CookieManager.set(baseUrl, {
+            name: "ndToken",
+            value: (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndToken) !== null && _c !== void 0 ? _c : "",
+        });
+        const subsonicSaltStore = CookieManager.set(baseUrl, {
+            name: "subsonicSalt",
+            value: (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt) !== null && _d !== void 0 ? _d : "",
+        });
+        const subsonicTokenStore = CookieManager.set(baseUrl, {
+            name: "subsonicToken",
+            value: (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "",
+        });
+        return Promise.all([
+            ndBaseUrlStore,
+            ndUsernameStore,
+            ndTokenStore,
+            subsonicSaltStore,
+            subsonicTokenStore,
+        ]);
+    }
+}
+function getStoredAuthInfo(baseUrl) {
+    if (!CookieManager) {
+        return new Promise((resolve) => {
+            resolve(debugAuthInfo);
+        });
+    }
+    else {
+        return CookieManager.get(baseUrl).then((cookies) => {
+            var _a, _b, _c, _d, _e;
+            return Promise.resolve({
+                ndBaseUrl: (_a = cookies.ndBaseUrl) === null || _a === void 0 ? void 0 : _a.value,
+                ndUsername: (_b = cookies.ndUsername) === null || _b === void 0 ? void 0 : _b.value,
+                ndToken: (_c = cookies.ndToken) === null || _c === void 0 ? void 0 : _c.value,
+                subsonicSalt: (_d = cookies.subsonicSalt) === null || _d === void 0 ? void 0 : _d.value,
+                subsonicToken: (_e = cookies.subsonicToken) === null || _e === void 0 ? void 0 : _e.value,
+            });
+        });
+    }
+}
+function resetStoredAuthInfo(baseUrl) {
+    return storeAuthInfo(baseUrl, genDefaultAuthInfo());
+}
 function getUserVariables() {
     var _a, _b, _c;
     let userVariables = (_a = env === null || env === void 0 ? void 0 : env.getUserVariables()) !== null && _a !== void 0 ? _a : {};
@@ -16,22 +108,22 @@ function getUserVariables() {
     }
     return userVariables;
 }
-function getNdBaseUrl() {
+function getConfigNdBaseUrl() {
     var _a;
     return (_a = getUserVariables()) === null || _a === void 0 ? void 0 : _a.url;
 }
-function getNdUsername() {
+function getConfigNdUsername() {
     var _a;
     return (_a = getUserVariables()) === null || _a === void 0 ? void 0 : _a.username;
 }
-function getNdPassword() {
+function getConfigNdPassword() {
     var _a;
     return (_a = getUserVariables()) === null || _a === void 0 ? void 0 : _a.password;
 }
 function isSubsonicAuthInfoValid(info) {
     return (info &&
-        info.username &&
-        info.username.length > 0 &&
+        info.ndUsername &&
+        info.ndUsername.length > 0 &&
         info.subsonicSalt &&
         info.subsonicSalt.length > 0 &&
         info.subsonicToken &&
@@ -42,16 +134,22 @@ function isNdAuthInfoValid(info) {
 }
 function isLoginUrl(baseUrl, url) {
     return (baseUrl &&
-        baseUrl === getNdBaseUrl() &&
+        baseUrl === getConfigNdBaseUrl() &&
         url &&
         url.startsWith("/auth/login"));
 }
 function isSubsonicUrl(baseUrl, url) {
-    return (baseUrl && baseUrl === getNdBaseUrl() && url && url.startsWith("/rest"));
+    return (baseUrl &&
+        baseUrl === getConfigNdBaseUrl() &&
+        url &&
+        url.startsWith("/rest"));
 }
 function isNdUrl(baseUrl, url) {
     return (isLoginUrl(baseUrl, url) ||
-        (baseUrl && baseUrl === getNdBaseUrl() && url && url.startsWith("/api")));
+        (baseUrl &&
+            baseUrl === getConfigNdBaseUrl() &&
+            url &&
+            url.startsWith("/api")));
 }
 const service = axios.create({
     timeout: 30000,
@@ -59,20 +157,31 @@ const service = axios.create({
 });
 service.interceptors.request.use(async function (config) {
     var _a;
-    config.baseURL = (_a = config.baseURL) !== null && _a !== void 0 ? _a : getNdBaseUrl();
+    config.baseURL = (_a = config.baseURL) !== null && _a !== void 0 ? _a : getConfigNdBaseUrl();
     if (config.method === "post") {
         config.headers["Content-Type"] = "application/json;charset=utf-8";
     }
     const ifLoginUrl = isLoginUrl(config.baseURL, config.url);
     const ifSubsonicUrl = isSubsonicUrl(config.baseURL, config.url);
     const ifNdUrl = isNdUrl(config.baseURL, config.url);
-    if (!ifLoginUrl) {
+    if ((ifNdUrl || ifSubsonicUrl) && !ifLoginUrl) {
+        let authInfo = await getStoredAuthInfo(config.baseURL);
+        const baseURLHost = config.baseURL ? new URL(config.baseURL).host : null;
+        const storedBaseURLHost = (authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl)
+            ? new URL(authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl).host
+            : null;
+        if (baseURLHost !== storedBaseURLHost ||
+            getConfigNdUsername() !== (authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername)) {
+            await resetStoredAuthInfo(config.baseURL);
+            authInfo = null;
+        }
         if ((ifNdUrl && !isNdAuthInfoValid(authInfo)) ||
             (ifSubsonicUrl && !isSubsonicAuthInfoValid(authInfo))) {
             await requestToken();
+            authInfo = await getStoredAuthInfo(config.baseURL);
         }
         if (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo)) {
-            config.params = Object.assign({ u: authInfo === null || authInfo === void 0 ? void 0 : authInfo.username, s: authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt, t: authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken, c: SUBSONIC_API_C, v: SUBSONIC_API_V, f: SUBSONIC_API_F }, config.params);
+            config.params = Object.assign({ u: authInfo.ndUsername, s: authInfo.subsonicSalt, t: authInfo.subsonicToken, c: SUBSONIC_API_C, v: SUBSONIC_API_V, f: SUBSONIC_API_F }, config.params);
         }
         if (ifNdUrl && isNdAuthInfoValid(authInfo)) {
             config.headers["x-nd-authorization"] = `Bearer ${authInfo.ndToken}`;
@@ -92,12 +201,13 @@ service.interceptors.response.use(async function (response) {
         if (ifNdUrl || ifSubsonicUrl) {
             if (!isLoginUrl(error.config.baseURL, error.config.url)) {
                 await requestToken();
+                const authInfo = await getStoredAuthInfo(error.config.baseURL);
                 if ((ifNdUrl && isNdAuthInfoValid(authInfo)) ||
                     (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo))) {
                     return await service.request(error.config);
                 }
             }
-            authInfo = null;
+            await resetStoredAuthInfo(error.config.baseURL);
         }
     }
     return Promise.reject(error);
@@ -107,23 +217,26 @@ function requestToken() {
         return singletonTokenRequest;
     }
     let { _, username, password } = getUserVariables();
-    singletonTokenRequest = new Promise(async function (resolve) {
+    singletonTokenRequest = new Promise(async function (resolve, reject) {
+        const baseUrl = getConfigNdBaseUrl();
         await service
             .post("/auth/login", {
             username,
             password,
         })
             .then(({ data }) => {
-            authInfo = {
-                username: data === null || data === void 0 ? void 0 : data.username,
-                ndToken: data === null || data === void 0 ? void 0 : data.token,
-                subsonicSalt: data === null || data === void 0 ? void 0 : data.subsonicSalt,
-                subsonicToken: data === null || data === void 0 ? void 0 : data.subsonicToken,
-            };
-            resolve(data);
+            storeAuthInfo(baseUrl, genAuthInfoFromLoginResp(baseUrl, data))
+                .then(() => {
+                resolve(data);
+            })
+                .catch((cErr) => {
+                reject(cErr);
+            });
         })
-            .catch(() => {
-            authInfo = null;
+            .catch((err) => {
+            resetStoredAuthInfo(baseUrl).finally(() => {
+                reject(err);
+            });
         });
     });
     singletonTokenRequest.finally(() => {

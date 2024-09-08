@@ -3,6 +3,7 @@ declare global {
     getUserVariables?: () => Record<string, string>;
     os: string;
     appVersion: string;
+    debug: boolean;
   };
 }
 

@@ -9,8 +9,7 @@ global.env = {
       password: test.navidrome.password,
     };
   },
-  os: "",
-  appVersion: "",
+  debug: true,
 };
 
 const navidrome = require("../plugins/navidrome/index");

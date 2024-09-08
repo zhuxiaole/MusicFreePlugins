@@ -1,5 +1,8 @@
 const axios = require("axios");
 const CryptoJs = require("crypto-js");
+const CookieManager = !env?.debug
+  ? require("@react-native-cookies/cookies")
+  : null;
 
 const PAGE_SIZE = 25;
 const UA =
@@ -11,8 +14,95 @@ const SUBSONIC_API_F = "json";
 
 // 唯一token请求
 let singletonTokenRequest = null;
-// 用户认证信息
-let authInfo = null;
+// debug为true时，不使用cookie存储，而使用该变量存储认证信息
+const debugAuthInfo: NdAuthInfo = genDefaultAuthInfo();
+
+function genDefaultAuthInfo(): NdAuthInfo {
+  return {
+    ndBaseUrl: "",
+    ndUsername: "",
+    ndToken: "",
+    subsonicSalt: "",
+    subsonicToken: "",
+  };
+}
+
+function genAuthInfoFromLoginResp(baseUrl, loginResp): NdAuthInfo {
+  return {
+    ndBaseUrl: baseUrl ?? "",
+    ndUsername: loginResp?.username ?? "",
+    ndToken: loginResp?.token ?? "",
+    subsonicSalt: loginResp?.subsonicSalt ?? "",
+    subsonicToken: loginResp?.subsonicToken ?? "",
+  };
+}
+
+function storeAuthInfo(baseUrl, authInfo: NdAuthInfo): Promise<any> {
+  if (!CookieManager) {
+    return new Promise<any>((resolve, reject) => {
+      try {
+        debugAuthInfo.ndBaseUrl = authInfo?.ndBaseUrl ?? "";
+        debugAuthInfo.ndUsername = authInfo?.ndUsername ?? "";
+        debugAuthInfo.ndToken = authInfo?.ndToken ?? "";
+        debugAuthInfo.subsonicSalt = authInfo?.subsonicSalt ?? "";
+        debugAuthInfo.subsonicToken = authInfo?.subsonicToken ?? "";
+        resolve("success");
+      } catch (err) {
+        reject(err);
+      }
+    });
+  } else {
+    const ndBaseUrlStore = CookieManager.set(baseUrl, {
+      name: "ndBaseUrl",
+      value: authInfo?.ndBaseUrl ?? "",
+    });
+    const ndUsernameStore = CookieManager.set(baseUrl, {
+      name: "ndUsername",
+      value: authInfo?.ndUsername ?? "",
+    });
+    const ndTokenStore = CookieManager.set(baseUrl, {
+      name: "ndToken",
+      value: authInfo?.ndToken ?? "",
+    });
+    const subsonicSaltStore = CookieManager.set(baseUrl, {
+      name: "subsonicSalt",
+      value: authInfo?.subsonicSalt ?? "",
+    });
+    const subsonicTokenStore = CookieManager.set(baseUrl, {
+      name: "subsonicToken",
+      value: authInfo?.subsonicToken ?? "",
+    });
+    return Promise.all([
+      ndBaseUrlStore,
+      ndUsernameStore,
+      ndTokenStore,
+      subsonicSaltStore,
+      subsonicTokenStore,
+    ]);
+  }
+}
+
+function getStoredAuthInfo(baseUrl): Promise<NdAuthInfo> {
+  if (!CookieManager) {
+    return new Promise<any>((resolve) => {
+      resolve(debugAuthInfo);
+    });
+  } else {
+    return CookieManager.get(baseUrl).then((cookies) => {
+      return Promise.resolve({
+        ndBaseUrl: cookies.ndBaseUrl?.value,
+        ndUsername: cookies.ndUsername?.value,
+        ndToken: cookies.ndToken?.value,
+        subsonicSalt: cookies.subsonicSalt?.value,
+        subsonicToken: cookies.subsonicToken?.value,
+      });
+    });
+  }
+}
+
+function resetStoredAuthInfo(baseUrl): Promise<any> {
+  return storeAuthInfo(baseUrl, genDefaultAuthInfo());
+}
 
 function getUserVariables() {
   let userVariables = env?.getUserVariables() ?? {};
@@ -25,23 +115,23 @@ function getUserVariables() {
   return userVariables;
 }
 
-function getNdBaseUrl() {
+function getConfigNdBaseUrl() {
   return getUserVariables()?.url;
 }
 
-function getNdUsername() {
+function getConfigNdUsername() {
   return getUserVariables()?.username;
 }
 
-function getNdPassword() {
+function getConfigNdPassword() {
   return getUserVariables()?.password;
 }
 
 function isSubsonicAuthInfoValid(info) {
   return (
     info &&
-    info.username &&
-    info.username.length > 0 &&
+    info.ndUsername &&
+    info.ndUsername.length > 0 &&
     info.subsonicSalt &&
     info.subsonicSalt.length > 0 &&
     info.subsonicToken &&
@@ -56,7 +146,7 @@ function isNdAuthInfoValid(info) {
 function isLoginUrl(baseUrl, url) {
   return (
     baseUrl &&
-    baseUrl === getNdBaseUrl() &&
+    baseUrl === getConfigNdBaseUrl() &&
     url &&
     url.startsWith("/auth/login")
   );
@@ -64,14 +154,20 @@ function isLoginUrl(baseUrl, url) {
 
 function isSubsonicUrl(baseUrl, url) {
   return (
-    baseUrl && baseUrl === getNdBaseUrl() && url && url.startsWith("/rest")
+    baseUrl &&
+    baseUrl === getConfigNdBaseUrl() &&
+    url &&
+    url.startsWith("/rest")
   );
 }
 
 function isNdUrl(baseUrl, url) {
   return (
     isLoginUrl(baseUrl, url) ||
-    (baseUrl && baseUrl === getNdBaseUrl() && url && url.startsWith("/api"))
+    (baseUrl &&
+      baseUrl === getConfigNdBaseUrl() &&
+      url &&
+      url.startsWith("/api"))
   );
 }
 
@@ -84,7 +180,7 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   async function (config) {
-    config.baseURL = config.baseURL ?? getNdBaseUrl();
+    config.baseURL = config.baseURL ?? getConfigNdBaseUrl();
 
     if (config.method === "post") {
       config.headers["Content-Type"] = "application/json;charset=utf-8";
@@ -94,20 +190,37 @@ service.interceptors.request.use(
     const ifSubsonicUrl = isSubsonicUrl(config.baseURL, config.url);
     const ifNdUrl = isNdUrl(config.baseURL, config.url);
 
-    if (!ifLoginUrl) {
+    if ((ifNdUrl || ifSubsonicUrl) && !ifLoginUrl) {
+      let authInfo = await getStoredAuthInfo(config.baseURL);
+
+      // 如果用户配置的url或者用户名与cookie存储的不同，则清除cookie存储的认证信息
+      const baseURLHost = config.baseURL ? new URL(config.baseURL).host : null;
+      const storedBaseURLHost = authInfo?.ndBaseUrl
+        ? new URL(authInfo?.ndBaseUrl).host
+        : null;
+
+      if (
+        baseURLHost !== storedBaseURLHost ||
+        getConfigNdUsername() !== authInfo?.ndUsername
+      ) {
+        await resetStoredAuthInfo(config.baseURL);
+        authInfo = null;
+      }
+
       if (
         (ifNdUrl && !isNdAuthInfoValid(authInfo)) ||
         (ifSubsonicUrl && !isSubsonicAuthInfoValid(authInfo))
       ) {
         // 请求token
         await requestToken();
+        authInfo = await getStoredAuthInfo(config.baseURL);
       }
 
       if (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo)) {
         config.params = {
-          u: authInfo?.username,
-          s: authInfo?.subsonicSalt,
-          t: authInfo?.subsonicToken,
+          u: authInfo.ndUsername,
+          s: authInfo.subsonicSalt,
+          t: authInfo.subsonicToken,
           c: SUBSONIC_API_C,
           v: SUBSONIC_API_V,
           f: SUBSONIC_API_F,
@@ -145,6 +258,7 @@ service.interceptors.response.use(
         if (!isLoginUrl(error.config.baseURL, error.config.url)) {
           // 1. 刷新 token
           await requestToken();
+          const authInfo = await getStoredAuthInfo(error.config.baseURL);
           if (
             (ifNdUrl && isNdAuthInfoValid(authInfo)) ||
             (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo))
@@ -153,7 +267,7 @@ service.interceptors.response.use(
             return await service.request(error.config);
           }
         }
-        authInfo = null;
+        await resetStoredAuthInfo(error.config.baseURL);
       }
     }
     return Promise.reject(error);
@@ -169,27 +283,30 @@ function requestToken(): Promise<any> {
   let { _, username, password } = getUserVariables();
 
   // 设置 singletonTokenRequest 为一个 Promise 对象 , 处理刷新 token 请求
-  singletonTokenRequest = new Promise<any>(async function (resolve) {
+  singletonTokenRequest = new Promise<any>(async function (resolve, reject) {
+    const baseUrl = getConfigNdBaseUrl();
     await service
       .post("/auth/login", {
         username,
         password,
       })
       .then(({ data }) => {
-        // 设置刷新后的Token
-        authInfo = {
-          username: data?.username,
-          ndToken: data?.token,
-          subsonicSalt: data?.subsonicSalt,
-          subsonicToken: data?.subsonicToken,
-        };
-        // 刷新路由
-        resolve(data);
+        // 存储Token
+        storeAuthInfo(baseUrl, genAuthInfoFromLoginResp(baseUrl, data))
+          .then(() => {
+            resolve(data);
+          })
+          .catch((cErr) => {
+            reject(cErr);
+          });
       })
-      .catch(() => {
-        authInfo = null;
+      .catch((err) => {
+        resetStoredAuthInfo(baseUrl).finally(() => {
+          reject(err);
+        });
       });
   });
+
   // 最终将 singletonTokenRequest 设置为 null, 防止 singletonTokenRequest 一直占用
   singletonTokenRequest.finally(() => {
     singletonTokenRequest = null;
@@ -696,6 +813,14 @@ async function getTopListDetail(topListItem, page) {
     return await getAlbumInfo(topListItem, page);
   }
 }
+
+type NdAuthInfo = {
+  ndBaseUrl: string;
+  ndUsername: string;
+  ndToken: string;
+  subsonicSalt: string;
+  subsonicToken: string;
+};
 
 module.exports = {
   platform: "Navidrome",
