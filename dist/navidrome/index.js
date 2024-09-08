@@ -270,6 +270,12 @@ function getCoverArtUrl(coverArt) {
     return urlObj.toString();
 }
 function formatMusicItem(it) {
+    var _a;
+    const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
+    let rawLrc = "";
+    if (lyricsArr && lyricsArr.length > 0) {
+        rawLrc = convertToLRC((_a = lyricsArr[0]) === null || _a === void 0 ? void 0 : _a.line);
+    }
     return {
         id: it.id,
         title: it.title,
@@ -279,9 +285,16 @@ function formatMusicItem(it) {
         albumid: it.albumId,
         artwork: getCoverArtUrl(it.id),
         duration: it.duration,
+        rawLrc: rawLrc,
     };
 }
 function formatPlaylistMusicItem(it) {
+    var _a;
+    const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
+    let rawLrc = "";
+    if (lyricsArr && lyricsArr.length > 0) {
+        rawLrc = convertToLRC((_a = lyricsArr[0]) === null || _a === void 0 ? void 0 : _a.line);
+    }
     return {
         id: it.mediaFileId,
         title: it.title,
@@ -291,6 +304,7 @@ function formatPlaylistMusicItem(it) {
         albumid: it.albumId,
         artwork: getCoverArtUrl(it.mediaFileId),
         duration: it.duration,
+        rawLrc: rawLrc,
     };
 }
 function formatAlbumItem(it) {
@@ -329,20 +343,18 @@ function formatPlaylistItem(it) {
     };
 }
 async function searchMusic(query, page) {
-    var _a, _b, _c;
-    const data = (await service.get("/rest/search3", {
+    var _a;
+    const startIndex = (page - 1) * PAGE_SIZE;
+    const data = (await service.get("/api/song", {
         params: {
-            query,
-            songCount: PAGE_SIZE,
-            songOffset: (page - 1) * PAGE_SIZE,
-            artistCount: 0,
-            albumCount: 0,
+            title: query,
+            _start: startIndex,
+            _end: startIndex + PAGE_SIZE,
         },
     })).data;
-    const songs = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.song;
     return {
-        isEnd: songs == null ? true : songs.length < PAGE_SIZE,
-        data: (_c = songs === null || songs === void 0 ? void 0 : songs.map(formatMusicItem)) !== null && _c !== void 0 ? _c : [],
+        isEnd: data == null ? true : data.length < PAGE_SIZE,
+        data: (_a = data === null || data === void 0 ? void 0 : data.map(formatMusicItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function searchSheet(query, page) {

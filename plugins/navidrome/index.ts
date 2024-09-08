@@ -349,6 +349,11 @@ function getCoverArtUrl(coverArt) {
 }
 
 function formatMusicItem(it) {
+  const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
+  let rawLrc = "";
+  if (lyricsArr && lyricsArr.length > 0) {
+    rawLrc = convertToLRC(lyricsArr[0]?.line);
+  }
   return {
     id: it.id,
     title: it.title,
@@ -358,10 +363,16 @@ function formatMusicItem(it) {
     albumid: it.albumId,
     artwork: getCoverArtUrl(it.id),
     duration: it.duration,
+    rawLrc: rawLrc,
   };
 }
 
 function formatPlaylistMusicItem(it) {
+  const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
+  let rawLrc = "";
+  if (lyricsArr && lyricsArr.length > 0) {
+    rawLrc = convertToLRC(lyricsArr[0]?.line);
+  }
   return {
     id: it.mediaFileId,
     title: it.title,
@@ -371,6 +382,7 @@ function formatPlaylistMusicItem(it) {
     albumid: it.albumId,
     artwork: getCoverArtUrl(it.mediaFileId),
     duration: it.duration,
+    rawLrc: rawLrc,
   };
 }
 
@@ -411,23 +423,20 @@ function formatPlaylistItem(it) {
 }
 
 async function searchMusic(query, page) {
+  const startIndex = (page - 1) * PAGE_SIZE;
   const data = (
-    await service.get("/rest/search3", {
+    await service.get("/api/song", {
       params: {
-        query,
-        songCount: PAGE_SIZE,
-        songOffset: (page - 1) * PAGE_SIZE,
-        artistCount: 0,
-        albumCount: 0,
+        title: query,
+        _start: startIndex,
+        _end: startIndex + PAGE_SIZE,
       },
     })
   ).data;
 
-  const songs = data["subsonic-response"]?.searchResult3?.song;
-
   return {
-    isEnd: songs == null ? true : songs.length < PAGE_SIZE,
-    data: songs?.map(formatMusicItem) ?? [],
+    isEnd: data == null ? true : data.length < PAGE_SIZE,
+    data: data?.map(formatMusicItem) ?? [],
   };
 }
 
