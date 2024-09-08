@@ -24,3 +24,4 @@ https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreeP
 #### Navidrome
 
 - 搜索歌词
+- 播放和下载歌曲切换音质（切换音质后MusicFree播放界面无法获取时长，所以放弃了）
