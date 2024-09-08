@@ -134,13 +134,14 @@ function requestToken() {
 function genSalt() {
     return Math.random().toString(16).slice(2);
 }
-function getSubsonicURL(urlPath) {
+function getSubsonicURL(pathname) {
     let { url, username, password } = getUserVariables();
     if (!(url && username && password)) {
         return null;
     }
     const salt = genSalt();
-    const urlObj = new URL(`${url}${urlPath}`);
+    const urlObj = new URL(url);
+    urlObj.pathname = pathname;
     urlObj.searchParams.append("u", username);
     urlObj.searchParams.append("s", salt);
     urlObj.searchParams.append("t", CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
