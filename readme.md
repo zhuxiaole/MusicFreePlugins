@@ -23,5 +23,4 @@ https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreeP
 
 #### Navidrome
 
-- 作者详情展示歌曲列表
 - 搜索歌单、歌词

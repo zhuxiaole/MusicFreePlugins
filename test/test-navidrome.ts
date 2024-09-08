@@ -46,29 +46,29 @@ navidrome.setUserVariables({
 //     console.log(res);
 //   });
 
-// navidrome
-//   .getArtistWorks(
-//     {
-//       id: "b68aba47f332d118ad655dcfa1029afc",
-//     },
-//     1,
-//     "album"
-//   )
-//   .then((res) => {
-//     console.log(res);
-//   });
+navidrome
+  .getArtistWorks(
+    {
+      id: "b68aba47f332d118ad655dcfa1029afc",
+    },
+    1,
+    "music"
+  )
+  .then((res) => {
+    console.log(res);
+  });
 
 // navidrome.getTopLists().then((res) => {
 //   console.log(res);
 // });
 
-navidrome
-  .getMediaSource({
-    id: "4e65f766209106ba19283c99fb631813",
-  })
-  .then((res) => {
-    console.log(res);
-  });
+// navidrome
+//   .getMediaSource({
+//     id: "4e65f766209106ba19283c99fb631813",
+//   })
+//   .then((res) => {
+//     console.log(res);
+//   });
 
 // navidrome
 //   .getMusicInfo({

@@ -516,9 +516,32 @@ async function getArtistAlbums(artistItem, page) {
   };
 }
 
+async function getArtistMusics(artistItem, page) {
+  const startIndex = (page - 1) * pageSize;
+  const data = (
+    await service.get("/api/song", {
+      params: {
+        artist_id: artistItem.id,
+        _start: startIndex,
+        _end: startIndex + pageSize,
+        _order: "ASC",
+        _sort: "title",
+      },
+    })
+  ).data;
+
+  return {
+    isEnd: data == null ? true : data.length < pageSize,
+    data: data?.map(formatMusicItem) ?? [],
+  };
+}
+
 async function getArtistWorks(artistItem, page, type) {
   if (type === "album") {
     return await getArtistAlbums(artistItem, page);
+  }
+  if (type === "music") {
+    return await getArtistMusics(artistItem, page);
   }
 }
 
