@@ -127,13 +127,13 @@ function requestToken() {
 function genSalt() {
     return Math.random().toString(16).slice(2);
 }
-function getRequestURL(urlPath) {
+function getSubsonicURL(urlPath) {
     let { url, username, password } = getUserVariables();
     if (!(url && username && password)) {
         return null;
     }
     const salt = genSalt();
-    const urlObj = new URL(`${url}/rest/${urlPath}`);
+    const urlObj = new URL(`${url}${urlPath}`);
     urlObj.searchParams.append("u", username);
     urlObj.searchParams.append("s", salt);
     urlObj.searchParams.append("t", CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
@@ -143,7 +143,7 @@ function getRequestURL(urlPath) {
     return urlObj;
 }
 function getCoverArtUrl(coverArt) {
-    const urlObj = getRequestURL("getCoverArt");
+    const urlObj = getSubsonicURL("/rest/getCoverArt");
     urlObj.searchParams.append("id", coverArt);
     urlObj.searchParams.append("size", "300");
     return urlObj.toString();
@@ -290,12 +290,32 @@ async function scrobble(id) {
         },
     });
 }
-async function getMediaSource(musicItem) {
+async function getMediaSource(musicItem, quality) {
     scrobble(musicItem.id);
-    const urlObj = getRequestURL("stream");
+    quality = "super";
+    let maxBitRate, format;
+    switch (quality) {
+        case "low":
+            maxBitRate = "128";
+            format = "mp3";
+            break;
+        case "standard":
+            maxBitRate = "256";
+            format = "mp3";
+            break;
+        case "high":
+            maxBitRate = "320";
+            format = "aac";
+            break;
+        default:
+            maxBitRate = "0";
+            format = "raw";
+            break;
+    }
+    const urlObj = getSubsonicURL("/rest/stream");
     urlObj.searchParams.append("id", musicItem.id);
-    urlObj.searchParams.append("maxBitRate", "0");
-    urlObj.searchParams.append("format", "raw");
+    urlObj.searchParams.append("maxBitRate", maxBitRate);
+    urlObj.searchParams.append("format", format);
     return {
         url: urlObj.toString(),
     };
