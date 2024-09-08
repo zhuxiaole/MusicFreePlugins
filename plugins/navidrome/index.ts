@@ -1,11 +1,13 @@
 const axios = require("axios");
 const CryptoJs = require("crypto-js");
 
-const pageSize = 25;
+const PAGE_SIZE = 25;
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
-// 用户设置环境变量
-let userVars: Record<string, string> = null;
+
+const SUBSONIC_API_C = "MusicFree-PigNavidrome";
+const SUBSONIC_API_V = "1.14.0";
+const SUBSONIC_API_F = "json";
 
 // 唯一token请求
 let singletonTokenRequest = null;
@@ -13,21 +15,17 @@ let singletonTokenRequest = null;
 let authInfo = null;
 
 function getUserVariables() {
-  let result = userVars == null ? env?.getUserVariables() ?? {} : userVars;
+  let userVariables = env?.getUserVariables() ?? {};
   if (
-    !result?.url?.startsWith("http://") &&
-    !result?.url?.startsWith("https://")
+    !userVariables?.url?.startsWith("http://") &&
+    !userVariables?.url?.startsWith("https://")
   ) {
-    result.url = `http://${result.url}`;
+    userVariables.url = `http://${userVariables.url}`;
   }
-  return result;
+  return userVariables;
 }
 
-function setUserVariables(userVariables: Record<string, string>) {
-  userVars = userVariables;
-}
-
-function getBaseUrl() {
+function getNdBaseUrl() {
   return getUserVariables()?.url;
 }
 
@@ -55,16 +53,26 @@ function isNdAuthInfoValid(info) {
   return info && info.ndToken && info.ndToken.length > 0;
 }
 
-function isLoginUrl(url) {
-  return url && url.startsWith("/auth/login");
+function isLoginUrl(baseUrl, url) {
+  return (
+    baseUrl &&
+    baseUrl === getNdBaseUrl() &&
+    url &&
+    url.startsWith("/auth/login")
+  );
 }
 
-function isSubsonicUrl(url) {
-  return url && url.startsWith("/rest");
+function isSubsonicUrl(baseUrl, url) {
+  return (
+    baseUrl && baseUrl === getNdBaseUrl() && url && url.startsWith("/rest")
+  );
 }
 
-function isNdUrl(url) {
-  return url && url.startsWith("/api");
+function isNdUrl(baseUrl, url) {
+  return (
+    isLoginUrl(baseUrl, url) ||
+    (baseUrl && baseUrl === getNdBaseUrl() && url && url.startsWith("/api"))
+  );
 }
 
 // axios实例
@@ -76,34 +84,38 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   async function (config) {
-    config.baseURL = getBaseUrl();
+    config.baseURL = config.baseURL ?? getNdBaseUrl();
 
     if (config.method === "post") {
       config.headers["Content-Type"] = "application/json;charset=utf-8";
     }
 
-    if (!isLoginUrl(config?.url)) {
+    const ifLoginUrl = isLoginUrl(config.baseURL, config.url);
+    const ifSubsonicUrl = isSubsonicUrl(config.baseURL, config.url);
+    const ifNdUrl = isNdUrl(config.baseURL, config.url);
+
+    if (!ifLoginUrl) {
       if (
-        (isNdUrl(config?.url) && !isNdAuthInfoValid(authInfo)) ||
-        (isSubsonicUrl(config?.url) && !isSubsonicAuthInfoValid(authInfo))
+        (ifNdUrl && !isNdAuthInfoValid(authInfo)) ||
+        (ifSubsonicUrl && !isSubsonicAuthInfoValid(authInfo))
       ) {
         // 请求token
         await requestToken();
       }
 
-      if (isSubsonicUrl(config?.url) && isSubsonicAuthInfoValid(authInfo)) {
+      if (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo)) {
         config.params = {
           u: authInfo?.username,
           s: authInfo?.subsonicSalt,
           t: authInfo?.subsonicToken,
-          c: "MusicFree-PigNavidrome",
-          v: "1.14.0",
-          f: "json",
+          c: SUBSONIC_API_C,
+          v: SUBSONIC_API_V,
+          f: SUBSONIC_API_F,
           ...config.params,
         };
       }
 
-      if (isNdUrl(config?.url) && isNdAuthInfoValid(authInfo)) {
+      if (ifNdUrl && isNdAuthInfoValid(authInfo)) {
         // 设置头部 token
         config.headers["x-nd-authorization"] = `Bearer ${authInfo.ndToken}`;
       }
@@ -122,12 +134,15 @@ service.interceptors.response.use(
   },
   async function (error: any) {
     if (error?.response?.status === 401) {
-      const ifNdUrl = isNdUrl(error.config.url);
-      const ifSubsonicUrl = isSubsonicUrl(error.config.url);
+      const ifNdUrl = isNdUrl(error.config.baseURL, error.config.url);
+      const ifSubsonicUrl = isSubsonicUrl(
+        error.config.baseURL,
+        error.config.url
+      );
 
       // token 失效处理
       if (ifNdUrl || ifSubsonicUrl) {
-        if (!isLoginUrl(error.config.url)) {
+        if (!isLoginUrl(error.config.baseURL, error.config.url)) {
           // 1. 刷新 token
           await requestToken();
           if (
@@ -201,9 +216,9 @@ function getSubsonicURL(urlPath) {
     "t",
     CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex)
   );
-  urlObj.searchParams.append("c", "MusicFree-PigNavidrome");
-  urlObj.searchParams.append("v", "1.14.0");
-  urlObj.searchParams.append("f", "json");
+  urlObj.searchParams.append("c", SUBSONIC_API_C);
+  urlObj.searchParams.append("v", SUBSONIC_API_V);
+  urlObj.searchParams.append("f", SUBSONIC_API_F);
   return urlObj;
 }
 
@@ -281,8 +296,8 @@ async function searchMusic(query, page) {
     await service.get("/rest/search3", {
       params: {
         query,
-        songCount: pageSize,
-        songOffset: (page - 1) * pageSize,
+        songCount: PAGE_SIZE,
+        songOffset: (page - 1) * PAGE_SIZE,
         artistCount: 0,
         albumCount: 0,
       },
@@ -292,25 +307,25 @@ async function searchMusic(query, page) {
   const songs = data["subsonic-response"]?.searchResult3?.song;
 
   return {
-    isEnd: songs == null ? true : songs.length < pageSize,
+    isEnd: songs == null ? true : songs.length < PAGE_SIZE,
     data: songs?.map(formatMusicItem) ?? [],
   };
 }
 
 async function searchSheet(query, page) {
-  const startIndex = (page - 1) * pageSize;
+  const startIndex = (page - 1) * PAGE_SIZE;
   const data = (
     await service.get("/api/playlist", {
       params: {
         q: query,
         _start: startIndex,
-        _end: startIndex + pageSize,
+        _end: startIndex + PAGE_SIZE,
       },
     })
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < pageSize,
+    isEnd: data == null ? true : data.length < PAGE_SIZE,
     data: data?.map(formatPlaylistItem) ?? [],
   };
 }
@@ -320,8 +335,8 @@ async function searchAlbum(query, page) {
     await service.get("/rest/search3", {
       params: {
         query,
-        albumCount: pageSize,
-        albumOffset: (page - 1) * pageSize,
+        albumCount: PAGE_SIZE,
+        albumOffset: (page - 1) * PAGE_SIZE,
         songCount: 0,
         artistCount: 0,
       },
@@ -331,25 +346,25 @@ async function searchAlbum(query, page) {
   const albums = data["subsonic-response"]?.searchResult3?.album;
 
   return {
-    isEnd: albums == null ? true : albums.length < pageSize,
+    isEnd: albums == null ? true : albums.length < PAGE_SIZE,
     data: albums?.map(formatAlbumItem) ?? [],
   };
 }
 
 async function searchArtist(query, page) {
-  const startIndex = (page - 1) * pageSize;
+  const startIndex = (page - 1) * PAGE_SIZE;
   const data = (
     await service.get("/api/artist", {
       params: {
         name: query,
         _start: startIndex,
-        _end: startIndex + pageSize,
+        _end: startIndex + PAGE_SIZE,
       },
     })
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < pageSize,
+    isEnd: data == null ? true : data.length < PAGE_SIZE,
     data: data?.map(formatArtistItem) ?? [],
   };
 }
@@ -422,14 +437,14 @@ async function getMusicInfo(musicItem) {
 }
 
 async function getAlbumInfo(albumItem, page) {
-  const startIndex = (page - 1) * pageSize;
+  const startIndex = (page - 1) * PAGE_SIZE;
 
   const albumRequest = service.get(`/api/album/${albumItem.id}`);
   const songsRequest = service.get("/api/song", {
     params: {
       album_id: albumItem.id,
       _start: startIndex,
-      _end: startIndex + pageSize,
+      _end: startIndex + PAGE_SIZE,
       _order: "ASC",
       _sort: "album",
     },
@@ -441,7 +456,7 @@ async function getAlbumInfo(albumItem, page) {
   const song = datas[1]?.data;
 
   return {
-    isEnd: song == null ? true : song.length < pageSize,
+    isEnd: song == null ? true : song.length < PAGE_SIZE,
     musicList: song?.map(formatMusicItem) ?? [],
     sheetItem: {
       worksNums: album?.songCount ?? 0,
@@ -488,32 +503,32 @@ async function getLyric(musicItem) {
 }
 
 async function getRecommendSheetsByTag(_, page) {
-  const startIndex = (page - 1) * pageSize;
+  const startIndex = (page - 1) * PAGE_SIZE;
   // 获取某个 tag 下的所有歌单
   const data = (
     await service.get("/api/playlist", {
       params: {
         _start: startIndex,
-        _end: startIndex + pageSize,
+        _end: startIndex + PAGE_SIZE,
         _sort: "name",
       },
     })
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < pageSize,
+    isEnd: data == null ? true : data.length < PAGE_SIZE,
     data: data?.map(formatPlaylistItem) ?? [],
   };
 }
 
 async function getMusicSheetInfo(sheetItem, page) {
-  const startIndex = (page - 1) * pageSize;
+  const startIndex = (page - 1) * PAGE_SIZE;
   const data = (
     await service.get(`/api/playlist/${sheetItem.id}/tracks`, {
       params: {
         playlist_id: sheetItem.id,
         _start: startIndex,
-        _end: startIndex + pageSize,
+        _end: startIndex + PAGE_SIZE,
         _order: "ASC",
         _sort: "id",
       },
@@ -521,19 +536,19 @@ async function getMusicSheetInfo(sheetItem, page) {
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < pageSize,
+    isEnd: data == null ? true : data.length < PAGE_SIZE,
     musicList: data?.map(formatPlaylistMusicItem) ?? [],
   };
 }
 
 async function getArtistAlbums(artistItem, page) {
-  const startIndex = (page - 1) * pageSize;
+  const startIndex = (page - 1) * PAGE_SIZE;
   const data = (
     await service.get("/api/album", {
       params: {
         artist_id: artistItem.id,
         _start: startIndex,
-        _end: startIndex + pageSize,
+        _end: startIndex + PAGE_SIZE,
         _order: "ASC",
         _sort: "max_year asc,date asc",
       },
@@ -541,19 +556,19 @@ async function getArtistAlbums(artistItem, page) {
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < pageSize,
+    isEnd: data == null ? true : data.length < PAGE_SIZE,
     data: data?.map(formatAlbumItem) ?? [],
   };
 }
 
 async function getArtistMusics(artistItem, page) {
-  const startIndex = (page - 1) * pageSize;
+  const startIndex = (page - 1) * PAGE_SIZE;
   const data = (
     await service.get("/api/song", {
       params: {
         artist_id: artistItem.id,
         _start: startIndex,
-        _end: startIndex + pageSize,
+        _end: startIndex + PAGE_SIZE,
         _order: "ASC",
         _sort: "title",
       },
@@ -561,7 +576,7 @@ async function getArtistMusics(artistItem, page) {
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < pageSize,
+    isEnd: data == null ? true : data.length < PAGE_SIZE,
     data: data?.map(formatMusicItem) ?? [],
   };
 }
@@ -703,7 +718,6 @@ module.exports = {
     },
   ],
   supportedSearchType: ["music", "album", "artist", "sheet"],
-  setUserVariables,
   search,
   getMediaSource,
   getMusicInfo,

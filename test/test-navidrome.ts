@@ -1,11 +1,19 @@
-let navidrome = require("../plugins/navidrome/index");
-let test = require("./test-user-vars.json");
+const test = require("./test-user-vars.json");
 
-navidrome.setUserVariables({
-  url: test.navidrome.url,
-  username: test.navidrome.username,
-  password: test.navidrome.password,
-});
+/// <reference types="../types/global" />
+global.env = {
+  getUserVariables: () => {
+    return {
+      url: test.navidrome.url,
+      username: test.navidrome.username,
+      password: test.navidrome.password,
+    };
+  },
+  os: "",
+  appVersion: "",
+};
+
+const navidrome = require("../plugins/navidrome/index");
 
 // navidrome.search("发", 1, "sheet").then((res) => {
 //   console.log(res);

@@ -1,23 +1,22 @@
 const axios = require("axios");
 const CryptoJs = require("crypto-js");
-const pageSize = 25;
+const PAGE_SIZE = 25;
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
-let userVars = null;
+const SUBSONIC_API_C = "MusicFree-PigNavidrome";
+const SUBSONIC_API_V = "1.14.0";
+const SUBSONIC_API_F = "json";
 let singletonTokenRequest = null;
 let authInfo = null;
 function getUserVariables() {
     var _a, _b, _c;
-    let result = userVars == null ? (_a = env === null || env === void 0 ? void 0 : env.getUserVariables()) !== null && _a !== void 0 ? _a : {} : userVars;
-    if (!((_b = result === null || result === void 0 ? void 0 : result.url) === null || _b === void 0 ? void 0 : _b.startsWith("http://")) &&
-        !((_c = result === null || result === void 0 ? void 0 : result.url) === null || _c === void 0 ? void 0 : _c.startsWith("https://"))) {
-        result.url = `http://${result.url}`;
+    let userVariables = (_a = env === null || env === void 0 ? void 0 : env.getUserVariables()) !== null && _a !== void 0 ? _a : {};
+    if (!((_b = userVariables === null || userVariables === void 0 ? void 0 : userVariables.url) === null || _b === void 0 ? void 0 : _b.startsWith("http://")) &&
+        !((_c = userVariables === null || userVariables === void 0 ? void 0 : userVariables.url) === null || _c === void 0 ? void 0 : _c.startsWith("https://"))) {
+        userVariables.url = `http://${userVariables.url}`;
     }
-    return result;
+    return userVariables;
 }
-function setUserVariables(userVariables) {
-    userVars = userVariables;
-}
-function getBaseUrl() {
+function getNdBaseUrl() {
     var _a;
     return (_a = getUserVariables()) === null || _a === void 0 ? void 0 : _a.url;
 }
@@ -41,33 +40,41 @@ function isSubsonicAuthInfoValid(info) {
 function isNdAuthInfoValid(info) {
     return info && info.ndToken && info.ndToken.length > 0;
 }
-function isLoginUrl(url) {
-    return url && url.startsWith("/auth/login");
+function isLoginUrl(baseUrl, url) {
+    return (baseUrl &&
+        baseUrl === getNdBaseUrl() &&
+        url &&
+        url.startsWith("/auth/login"));
 }
-function isSubsonicUrl(url) {
-    return url && url.startsWith("/rest");
+function isSubsonicUrl(baseUrl, url) {
+    return (baseUrl && baseUrl === getNdBaseUrl() && url && url.startsWith("/rest"));
 }
-function isNdUrl(url) {
-    return url && url.startsWith("/api");
+function isNdUrl(baseUrl, url) {
+    return (isLoginUrl(baseUrl, url) ||
+        (baseUrl && baseUrl === getNdBaseUrl() && url && url.startsWith("/api")));
 }
 const service = axios.create({
     timeout: 30000,
     headers: { "User-Agent": UA },
 });
 service.interceptors.request.use(async function (config) {
-    config.baseURL = getBaseUrl();
+    var _a;
+    config.baseURL = (_a = config.baseURL) !== null && _a !== void 0 ? _a : getNdBaseUrl();
     if (config.method === "post") {
         config.headers["Content-Type"] = "application/json;charset=utf-8";
     }
-    if (!isLoginUrl(config === null || config === void 0 ? void 0 : config.url)) {
-        if ((isNdUrl(config === null || config === void 0 ? void 0 : config.url) && !isNdAuthInfoValid(authInfo)) ||
-            (isSubsonicUrl(config === null || config === void 0 ? void 0 : config.url) && !isSubsonicAuthInfoValid(authInfo))) {
+    const ifLoginUrl = isLoginUrl(config.baseURL, config.url);
+    const ifSubsonicUrl = isSubsonicUrl(config.baseURL, config.url);
+    const ifNdUrl = isNdUrl(config.baseURL, config.url);
+    if (!ifLoginUrl) {
+        if ((ifNdUrl && !isNdAuthInfoValid(authInfo)) ||
+            (ifSubsonicUrl && !isSubsonicAuthInfoValid(authInfo))) {
             await requestToken();
         }
-        if (isSubsonicUrl(config === null || config === void 0 ? void 0 : config.url) && isSubsonicAuthInfoValid(authInfo)) {
-            config.params = Object.assign({ u: authInfo === null || authInfo === void 0 ? void 0 : authInfo.username, s: authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt, t: authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken, c: "MusicFree-PigNavidrome", v: "1.14.0", f: "json" }, config.params);
+        if (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo)) {
+            config.params = Object.assign({ u: authInfo === null || authInfo === void 0 ? void 0 : authInfo.username, s: authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt, t: authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken, c: SUBSONIC_API_C, v: SUBSONIC_API_V, f: SUBSONIC_API_F }, config.params);
         }
-        if (isNdUrl(config === null || config === void 0 ? void 0 : config.url) && isNdAuthInfoValid(authInfo)) {
+        if (ifNdUrl && isNdAuthInfoValid(authInfo)) {
             config.headers["x-nd-authorization"] = `Bearer ${authInfo.ndToken}`;
         }
     }
@@ -80,10 +87,10 @@ service.interceptors.response.use(async function (response) {
 }, async function (error) {
     var _a;
     if (((_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.status) === 401) {
-        const ifNdUrl = isNdUrl(error.config.url);
-        const ifSubsonicUrl = isSubsonicUrl(error.config.url);
+        const ifNdUrl = isNdUrl(error.config.baseURL, error.config.url);
+        const ifSubsonicUrl = isSubsonicUrl(error.config.baseURL, error.config.url);
         if (ifNdUrl || ifSubsonicUrl) {
-            if (!isLoginUrl(error.config.url)) {
+            if (!isLoginUrl(error.config.baseURL, error.config.url)) {
                 await requestToken();
                 if ((ifNdUrl && isNdAuthInfoValid(authInfo)) ||
                     (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo))) {
@@ -137,9 +144,9 @@ function getSubsonicURL(urlPath) {
     urlObj.searchParams.append("u", username);
     urlObj.searchParams.append("s", salt);
     urlObj.searchParams.append("t", CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
-    urlObj.searchParams.append("c", "MusicFree-PigNavidrome");
-    urlObj.searchParams.append("v", "1.14.0");
-    urlObj.searchParams.append("f", "json");
+    urlObj.searchParams.append("c", SUBSONIC_API_C);
+    urlObj.searchParams.append("v", SUBSONIC_API_V);
+    urlObj.searchParams.append("f", SUBSONIC_API_F);
     return urlObj;
 }
 function getCoverArtUrl(coverArt) {
@@ -210,30 +217,30 @@ async function searchMusic(query, page) {
     const data = (await service.get("/rest/search3", {
         params: {
             query,
-            songCount: pageSize,
-            songOffset: (page - 1) * pageSize,
+            songCount: PAGE_SIZE,
+            songOffset: (page - 1) * PAGE_SIZE,
             artistCount: 0,
             albumCount: 0,
         },
     })).data;
     const songs = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.song;
     return {
-        isEnd: songs == null ? true : songs.length < pageSize,
+        isEnd: songs == null ? true : songs.length < PAGE_SIZE,
         data: (_c = songs === null || songs === void 0 ? void 0 : songs.map(formatMusicItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
 async function searchSheet(query, page) {
     var _a;
-    const startIndex = (page - 1) * pageSize;
+    const startIndex = (page - 1) * PAGE_SIZE;
     const data = (await service.get("/api/playlist", {
         params: {
             q: query,
             _start: startIndex,
-            _end: startIndex + pageSize,
+            _end: startIndex + PAGE_SIZE,
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < pageSize,
+        isEnd: data == null ? true : data.length < PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
@@ -242,30 +249,30 @@ async function searchAlbum(query, page) {
     const data = (await service.get("/rest/search3", {
         params: {
             query,
-            albumCount: pageSize,
-            albumOffset: (page - 1) * pageSize,
+            albumCount: PAGE_SIZE,
+            albumOffset: (page - 1) * PAGE_SIZE,
             songCount: 0,
             artistCount: 0,
         },
     })).data;
     const albums = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.album;
     return {
-        isEnd: albums == null ? true : albums.length < pageSize,
+        isEnd: albums == null ? true : albums.length < PAGE_SIZE,
         data: (_c = albums === null || albums === void 0 ? void 0 : albums.map(formatAlbumItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
 async function searchArtist(query, page) {
     var _a;
-    const startIndex = (page - 1) * pageSize;
+    const startIndex = (page - 1) * PAGE_SIZE;
     const data = (await service.get("/api/artist", {
         params: {
             name: query,
             _start: startIndex,
-            _end: startIndex + pageSize,
+            _end: startIndex + PAGE_SIZE,
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < pageSize,
+        isEnd: data == null ? true : data.length < PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatArtistItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
@@ -326,13 +333,13 @@ async function getMusicInfo(musicItem) {
 }
 async function getAlbumInfo(albumItem, page) {
     var _a, _b, _c, _d, _e;
-    const startIndex = (page - 1) * pageSize;
+    const startIndex = (page - 1) * PAGE_SIZE;
     const albumRequest = service.get(`/api/album/${albumItem.id}`);
     const songsRequest = service.get("/api/song", {
         params: {
             album_id: albumItem.id,
             _start: startIndex,
-            _end: startIndex + pageSize,
+            _end: startIndex + PAGE_SIZE,
             _order: "ASC",
             _sort: "album",
         },
@@ -341,7 +348,7 @@ async function getAlbumInfo(albumItem, page) {
     const album = (_a = datas[0]) === null || _a === void 0 ? void 0 : _a.data;
     const song = (_b = datas[1]) === null || _b === void 0 ? void 0 : _b.data;
     return {
-        isEnd: song == null ? true : song.length < pageSize,
+        isEnd: song == null ? true : song.length < PAGE_SIZE,
         musicList: (_c = song === null || song === void 0 ? void 0 : song.map(formatMusicItem)) !== null && _c !== void 0 ? _c : [],
         sheetItem: {
             worksNums: (_d = album === null || album === void 0 ? void 0 : album.songCount) !== null && _d !== void 0 ? _d : 0,
@@ -374,67 +381,67 @@ async function getLyric(musicItem) {
 }
 async function getRecommendSheetsByTag(_, page) {
     var _a;
-    const startIndex = (page - 1) * pageSize;
+    const startIndex = (page - 1) * PAGE_SIZE;
     const data = (await service.get("/api/playlist", {
         params: {
             _start: startIndex,
-            _end: startIndex + pageSize,
+            _end: startIndex + PAGE_SIZE,
             _sort: "name",
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < pageSize,
+        isEnd: data == null ? true : data.length < PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function getMusicSheetInfo(sheetItem, page) {
     var _a;
-    const startIndex = (page - 1) * pageSize;
+    const startIndex = (page - 1) * PAGE_SIZE;
     const data = (await service.get(`/api/playlist/${sheetItem.id}/tracks`, {
         params: {
             playlist_id: sheetItem.id,
             _start: startIndex,
-            _end: startIndex + pageSize,
+            _end: startIndex + PAGE_SIZE,
             _order: "ASC",
             _sort: "id",
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < pageSize,
+        isEnd: data == null ? true : data.length < PAGE_SIZE,
         musicList: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistMusicItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function getArtistAlbums(artistItem, page) {
     var _a;
-    const startIndex = (page - 1) * pageSize;
+    const startIndex = (page - 1) * PAGE_SIZE;
     const data = (await service.get("/api/album", {
         params: {
             artist_id: artistItem.id,
             _start: startIndex,
-            _end: startIndex + pageSize,
+            _end: startIndex + PAGE_SIZE,
             _order: "ASC",
             _sort: "max_year asc,date asc",
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < pageSize,
+        isEnd: data == null ? true : data.length < PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatAlbumItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function getArtistMusics(artistItem, page) {
     var _a;
-    const startIndex = (page - 1) * pageSize;
+    const startIndex = (page - 1) * PAGE_SIZE;
     const data = (await service.get("/api/song", {
         params: {
             artist_id: artistItem.id,
             _start: startIndex,
-            _end: startIndex + pageSize,
+            _end: startIndex + PAGE_SIZE,
             _order: "ASC",
             _sort: "title",
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < pageSize,
+        isEnd: data == null ? true : data.length < PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatMusicItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
@@ -549,7 +556,6 @@ module.exports = {
         },
     ],
     supportedSearchType: ["music", "album", "artist", "sheet"],
-    setUserVariables,
     search,
     getMediaSource,
     getMusicInfo,
