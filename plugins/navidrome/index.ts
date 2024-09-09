@@ -348,6 +348,103 @@ function getCoverArtUrl(coverArt) {
   return urlObj.toString();
 }
 
+// 获取navidrome歌单列表
+async function getNdPlaylists(query, sort, page) {
+  const startIndex = (page - 1) * PAGE_SIZE;
+
+  return (
+    await service.get("/api/playlist", {
+      params: {
+        q: query,
+        _start: startIndex,
+        _end: startIndex + PAGE_SIZE,
+        _sort: sort,
+      },
+    })
+  ).data;
+}
+
+// 获取navidrome专辑列表
+async function getNdAlbumList(type, page, size) {
+  const startIndex = (page - 1) * size;
+  const params = {
+    _start: startIndex,
+    _end: startIndex + size,
+  };
+
+  switch (type) {
+    case "recent": // 最近播放
+      params["recently_played"] = true;
+      params["_sort"] = "play_date";
+      params["_order"] = "DESC";
+      break;
+    case "starred": // 收藏
+      params["starred"] = true;
+      params["_sort"] = "starred_at";
+      params["_order"] = "DESC";
+      break;
+    case "highest": // 评分最高
+      params["has_rating"] = true;
+      params["_sort"] = "rating";
+      params["_order"] = "DESC";
+      break;
+    case "frequent": // 最多播放
+      params["recently_played"] = true;
+      params["_sort"] = "play_count";
+      params["_order"] = "DESC";
+      break;
+    case "newest": // 最近添加
+      params["_sort"] = "recently_added";
+      params["_order"] = "DESC";
+      break;
+    case "random": // 随机
+      params["_sort"] = "random";
+      params["_order"] = "ASC";
+      break;
+    default:
+      break;
+  }
+
+  return (await service.get("/api/album", { params })).data;
+}
+
+// 获取navidrome相关（作者、风格）专辑列表
+async function getNdRelatedAlbumList(artist_id, genre_id, page, order, sort) {
+  const startIndex = (page - 1) * PAGE_SIZE;
+  const params = {
+    _start: startIndex,
+    _end: startIndex + PAGE_SIZE,
+    _order: order,
+    _sort: sort,
+  };
+
+  if (artist_id && artist_id.length > 0) {
+    params["artist_id"] = artist_id;
+  }
+
+  if (genre_id && genre_id.length > 0) {
+    params["genre_id"] = genre_id;
+  }
+
+  return (await service.get("/api/album", { params })).data;
+}
+
+// 获取navidrome歌单中的歌曲列表
+async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
+  const startIndex = (page - 1) * PAGE_SIZE;
+  return (
+    await service.get(`/api/playlist/${playlistId}/tracks`, {
+      params: {
+        playlist_id: playlistId,
+        _start: startIndex,
+        _end: startIndex + PAGE_SIZE,
+        _order: order,
+        _sort: sort,
+      },
+    })
+  ).data;
+}
+
 function formatMusicItem(it) {
   const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
   let rawLrc = "";
@@ -441,20 +538,17 @@ async function searchMusic(query, page) {
 }
 
 async function searchSheet(query, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const data = (
-    await service.get("/api/playlist", {
-      params: {
-        q: query,
-        _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
-      },
-    })
-  ).data;
+  const data = await getNdPlaylists(query, "", page);
 
   return {
     isEnd: data == null ? true : data.length < PAGE_SIZE,
-    data: data?.map(formatPlaylistItem) ?? [],
+    data:
+      data?.map((it) => {
+        return {
+          ...formatPlaylistItem(it),
+          sheetType: "playlist",
+        };
+      }) ?? [],
   };
 }
 
@@ -630,58 +724,80 @@ async function getLyric(musicItem) {
   };
 }
 
-async function getRecommendSheetsByTag(_, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
-  // 获取某个 tag 下的所有歌单
-  const data = (
-    await service.get("/api/playlist", {
-      params: {
-        _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
-        _sort: "name",
-      },
-    })
-  ).data;
+async function getRecommendSheetTags() {
+  const resp = (await service.get("/api/genre")).data;
+
+  const data = resp?.map((it) => ({
+    id: it.id,
+    title: it.name,
+  }));
 
   return {
-    isEnd: data == null ? true : data.length < PAGE_SIZE,
-    data: data?.map(formatPlaylistItem) ?? [],
+    pinned: data,
+    data: [
+      {
+        title: "风格",
+        data: data,
+      },
+    ],
+  };
+}
+
+async function getRecommendSheetsByTag(tagItem, page) {
+  let sheetList;
+  if (!tagItem || !tagItem.id || tagItem.id.length <= 0) {
+    // 获取navidrome歌单列表
+    const data = await getNdPlaylists("", "name", page);
+    sheetList =
+      data?.map((it) => {
+        return {
+          ...formatPlaylistItem(it),
+          sheetType: "playlist",
+        };
+      }) ?? [];
+  } else {
+    // 获取对应风格的专辑列表
+    const data = await getNdRelatedAlbumList(
+      "",
+      tagItem.id,
+      page,
+      "ASC",
+      "max_year asc,date asc"
+    );
+    sheetList = data?.map(formatAlbumSheetItem) ?? [];
+  }
+
+  return {
+    isEnd: sheetList == null ? true : sheetList.length < PAGE_SIZE,
+    data: sheetList,
   };
 }
 
 async function getMusicSheetInfo(sheetItem, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const data = (
-    await service.get(`/api/playlist/${sheetItem.id}/tracks`, {
-      params: {
-        playlist_id: sheetItem.id,
-        _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
-        _order: "ASC",
-        _sort: "id",
-      },
-    })
-  ).data;
+  let musicList = null;
+
+  if (sheetItem.sheetType === "playlist") {
+    const data = await getNdPlaylistTracks(sheetItem.id, "ASC", "id");
+    musicList = data?.map(formatPlaylistMusicItem) ?? [];
+  } else if (sheetItem.sheetType === "album") {
+    const data = await getAlbumInfo(sheetItem, page);
+    musicList = data?.musicList ?? [];
+  }
 
   return {
-    isEnd: data == null ? true : data.length < PAGE_SIZE,
-    musicList: data?.map(formatPlaylistMusicItem) ?? [],
+    isEnd: musicList == null ? true : musicList.length < PAGE_SIZE,
+    musicList: musicList,
   };
 }
 
 async function getArtistAlbums(artistItem, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const data = (
-    await service.get("/api/album", {
-      params: {
-        artist_id: artistItem.id,
-        _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
-        _order: "ASC",
-        _sort: "max_year asc,date asc",
-      },
-    })
-  ).data;
+  const data = await getNdRelatedAlbumList(
+    artistItem.id,
+    "",
+    page,
+    "ASC",
+    "max_year asc,date asc"
+  );
 
   return {
     isEnd: data == null ? true : data.length < PAGE_SIZE,
@@ -722,26 +838,16 @@ function formatAlbumSheetItem(it) {
   return {
     id: it.id,
     description: it.artist,
-    title: it.title,
-    coverImg: getCoverArtUrl(it.coverArt),
-    type: "album",
+    title: it.name,
+    coverImg: getCoverArtUrl(it.id),
+    playCount: it.playCount,
+    sheetType: "album",
   };
 }
 
 // 获取专辑榜单
 async function getAlbumSheetList(type, page, size) {
-  const data = (
-    await service.get("/rest/getAlbumList2", {
-      params: {
-        type: type,
-        size: size,
-        offset: (page - 1) * size,
-      },
-    })
-  ).data;
-
-  const album = data["subsonic-response"]?.albumList2?.album;
-
+  const album = await getNdAlbumList(type, page, size);
   return album?.map(formatAlbumSheetItem) ?? [];
 }
 
@@ -753,7 +859,7 @@ async function getTopLists() {
   const recentList = getAlbumSheetList("recent", 1, 10);
   // 收藏专辑
   const starredList = getAlbumSheetList("starred", 1, 10);
-  // 专辑评分排行
+  // 评分最高的专辑
   const ratedList = getAlbumSheetList("highest", 1, 10);
   // 专辑最多播放
   const frequentList = getAlbumSheetList("frequent", 1, 10);
@@ -787,7 +893,7 @@ async function getTopLists() {
 
   if (datas[2]?.length > 0) {
     result.push({
-      title: "专辑评分排行",
+      title: "评分最高的专辑",
       data: datas[2],
     });
   }
@@ -818,7 +924,7 @@ async function getTopLists() {
 
 // 获取榜单详情
 async function getTopListDetail(topListItem, page) {
-  if (topListItem.type === "album") {
+  if (topListItem.sheetType === "album") {
     return await getAlbumInfo(topListItem, page);
   }
 }
@@ -859,6 +965,7 @@ module.exports = {
   getMusicInfo,
   getAlbumInfo,
   getLyric,
+  getRecommendSheetTags,
   getRecommendSheetsByTag,
   getMusicSheetInfo,
   getArtistWorks,

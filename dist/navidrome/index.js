@@ -269,6 +269,85 @@ function getCoverArtUrl(coverArt) {
     urlObj.searchParams.append("size", "300");
     return urlObj.toString();
 }
+async function getNdPlaylists(query, sort, page) {
+    const startIndex = (page - 1) * PAGE_SIZE;
+    return (await service.get("/api/playlist", {
+        params: {
+            q: query,
+            _start: startIndex,
+            _end: startIndex + PAGE_SIZE,
+            _sort: sort,
+        },
+    })).data;
+}
+async function getNdAlbumList(type, page, size) {
+    const startIndex = (page - 1) * size;
+    const params = {
+        _start: startIndex,
+        _end: startIndex + size,
+    };
+    switch (type) {
+        case "recent":
+            params["recently_played"] = true;
+            params["_sort"] = "play_date";
+            params["_order"] = "DESC";
+            break;
+        case "starred":
+            params["starred"] = true;
+            params["_sort"] = "starred_at";
+            params["_order"] = "DESC";
+            break;
+        case "highest":
+            params["has_rating"] = true;
+            params["_sort"] = "rating";
+            params["_order"] = "DESC";
+            break;
+        case "frequent":
+            params["recently_played"] = true;
+            params["_sort"] = "play_count";
+            params["_order"] = "DESC";
+            break;
+        case "newest":
+            params["_sort"] = "recently_added";
+            params["_order"] = "DESC";
+            break;
+        case "random":
+            params["_sort"] = "random";
+            params["_order"] = "ASC";
+            break;
+        default:
+            break;
+    }
+    return (await service.get("/api/album", { params })).data;
+}
+async function getNdRelatedAlbumList(artist_id, genre_id, page, order, sort) {
+    const startIndex = (page - 1) * PAGE_SIZE;
+    const params = {
+        _start: startIndex,
+        _end: startIndex + PAGE_SIZE,
+        _order: order,
+        _sort: sort,
+    };
+    if (artist_id && artist_id.length > 0) {
+        params["artist_id"] = artist_id;
+    }
+    if (genre_id && genre_id.length > 0) {
+        params["genre_id"] = genre_id;
+    }
+    return (await service.get("/api/album", { params })).data;
+}
+async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
+    const startIndex = (page - 1) * PAGE_SIZE;
+    return (await service.get(`/api/playlist/${playlistId}/tracks`, {
+        params: {
+            playlist_id: playlistId,
+            _start: startIndex,
+            _end: startIndex + PAGE_SIZE,
+            _order: order,
+            _sort: sort,
+        },
+    })).data;
+}
 function formatMusicItem(it) {
     var _a;
     const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
@@ -359,17 +438,12 @@ async function searchMusic(query, page) {
 }
 async function searchSheet(query, page) {
     var _a;
-    const startIndex = (page - 1) * PAGE_SIZE;
-    const data = (await service.get("/api/playlist", {
-        params: {
-            q: query,
-            _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
-        },
-    })).data;
+    const data = await getNdPlaylists(query, "", page);
     return {
         isEnd: data == null ? true : data.length < PAGE_SIZE,
-        data: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistItem)) !== null && _a !== void 0 ? _a : [],
+        data: (_a = data === null || data === void 0 ? void 0 : data.map((it) => {
+            return Object.assign(Object.assign({}, formatPlaylistItem(it)), { sheetType: "playlist" });
+        })) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function searchAlbum(query, page) {
@@ -507,50 +581,60 @@ async function getLyric(musicItem) {
         rawLrc: convertToLRC(lyricLines),
     };
 }
-async function getRecommendSheetsByTag(_, page) {
-    var _a;
-    const startIndex = (page - 1) * PAGE_SIZE;
-    const data = (await service.get("/api/playlist", {
-        params: {
-            _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
-            _sort: "name",
-        },
-    })).data;
+async function getRecommendSheetTags() {
+    const resp = (await service.get("/api/genre")).data;
+    const data = resp === null || resp === void 0 ? void 0 : resp.map((it) => ({
+        id: it.id,
+        title: it.name,
+    }));
     return {
-        isEnd: data == null ? true : data.length < PAGE_SIZE,
-        data: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistItem)) !== null && _a !== void 0 ? _a : [],
+        pinned: data,
+        data: [
+            {
+                title: "风格",
+                data: data,
+            },
+        ],
+    };
+}
+async function getRecommendSheetsByTag(tagItem, page) {
+    var _a, _b;
+    let sheetList;
+    if (!tagItem || !tagItem.id || tagItem.id.length <= 0) {
+        const data = await getNdPlaylists("", "name", page);
+        sheetList =
+            (_a = data === null || data === void 0 ? void 0 : data.map((it) => {
+                return Object.assign(Object.assign({}, formatPlaylistItem(it)), { sheetType: "playlist" });
+            })) !== null && _a !== void 0 ? _a : [];
+    }
+    else {
+        const data = await getNdRelatedAlbumList("", tagItem.id, page, "ASC", "max_year asc,date asc");
+        sheetList = (_b = data === null || data === void 0 ? void 0 : data.map(formatAlbumSheetItem)) !== null && _b !== void 0 ? _b : [];
+    }
+    return {
+        isEnd: sheetList == null ? true : sheetList.length < PAGE_SIZE,
+        data: sheetList,
     };
 }
 async function getMusicSheetInfo(sheetItem, page) {
-    var _a;
-    const startIndex = (page - 1) * PAGE_SIZE;
-    const data = (await service.get(`/api/playlist/${sheetItem.id}/tracks`, {
-        params: {
-            playlist_id: sheetItem.id,
-            _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
-            _order: "ASC",
-            _sort: "id",
-        },
-    })).data;
+    var _a, _b;
+    let musicList = null;
+    if (sheetItem.sheetType === "playlist") {
+        const data = await getNdPlaylistTracks(sheetItem.id, "ASC", "id");
+        musicList = (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistMusicItem)) !== null && _a !== void 0 ? _a : [];
+    }
+    else if (sheetItem.sheetType === "album") {
+        const data = await getAlbumInfo(sheetItem, page);
+        musicList = (_b = data === null || data === void 0 ? void 0 : data.musicList) !== null && _b !== void 0 ? _b : [];
+    }
     return {
-        isEnd: data == null ? true : data.length < PAGE_SIZE,
-        musicList: (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistMusicItem)) !== null && _a !== void 0 ? _a : [],
+        isEnd: musicList == null ? true : musicList.length < PAGE_SIZE,
+        musicList: musicList,
     };
 }
 async function getArtistAlbums(artistItem, page) {
     var _a;
-    const startIndex = (page - 1) * PAGE_SIZE;
-    const data = (await service.get("/api/album", {
-        params: {
-            artist_id: artistItem.id,
-            _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
-            _order: "ASC",
-            _sort: "max_year asc,date asc",
-        },
-    })).data;
+    const data = await getNdRelatedAlbumList(artistItem.id, "", page, "ASC", "max_year asc,date asc");
     return {
         isEnd: data == null ? true : data.length < PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatAlbumItem)) !== null && _a !== void 0 ? _a : [],
@@ -585,22 +669,16 @@ function formatAlbumSheetItem(it) {
     return {
         id: it.id,
         description: it.artist,
-        title: it.title,
-        coverImg: getCoverArtUrl(it.coverArt),
-        type: "album",
+        title: it.name,
+        coverImg: getCoverArtUrl(it.id),
+        playCount: it.playCount,
+        sheetType: "album",
     };
 }
 async function getAlbumSheetList(type, page, size) {
-    var _a, _b, _c;
-    const data = (await service.get("/rest/getAlbumList2", {
-        params: {
-            type: type,
-            size: size,
-            offset: (page - 1) * size,
-        },
-    })).data;
-    const album = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.albumList2) === null || _b === void 0 ? void 0 : _b.album;
-    return (_c = album === null || album === void 0 ? void 0 : album.map(formatAlbumSheetItem)) !== null && _c !== void 0 ? _c : [];
+    var _a;
+    const album = await getNdAlbumList(type, page, size);
+    return (_a = album === null || album === void 0 ? void 0 : album.map(formatAlbumSheetItem)) !== null && _a !== void 0 ? _a : [];
 }
 async function getTopLists() {
     var _a, _b, _c, _d, _e, _f;
@@ -633,7 +711,7 @@ async function getTopLists() {
     }
     if (((_c = datas[2]) === null || _c === void 0 ? void 0 : _c.length) > 0) {
         result.push({
-            title: "专辑评分排行",
+            title: "评分最高的专辑",
             data: datas[2],
         });
     }
@@ -658,7 +736,7 @@ async function getTopLists() {
     return result;
 }
 async function getTopListDetail(topListItem, page) {
-    if (topListItem.type === "album") {
+    if (topListItem.sheetType === "album") {
         return await getAlbumInfo(topListItem, page);
     }
 }
@@ -689,6 +767,7 @@ module.exports = {
     getMusicInfo,
     getAlbumInfo,
     getLyric,
+    getRecommendSheetTags,
     getRecommendSheetsByTag,
     getMusicSheetInfo,
     getArtistWorks,

@@ -37,13 +37,13 @@ const navidrome = require("../plugins/navidrome/index");
 //     console.log(res);
 //   });
 
-navidrome
-  .getMusicSheetInfo({
-    id: "17efeea7-bf36-456f-92bf-8a9d80658fd9",
-  })
-  .then((res) => {
-    console.log(res);
-  });
+// navidrome
+//   .getMusicSheetInfo({
+//     id: "17efeea7-bf36-456f-92bf-8a9d80658fd9",
+//   })
+//   .then((res) => {
+//     console.log(res);
+//   });
 
 // navidrome
 //   .getAlbumInfo({
@@ -65,9 +65,9 @@ navidrome
 //     console.log(res);
 //   });
 
-// navidrome.getTopLists().then((res) => {
-//   console.log(res);
-// });
+navidrome.getTopLists().then((res) => {
+  console.log(res);
+});
 
 // navidrome
 //   .getMediaSource(
@@ -87,3 +87,7 @@ navidrome
 //   .then((res) => {
 //     console.log(res);
 //   });
+
+// navidrome.getRecommendSheetTags().then((res) => {
+//   console.log(res);
+// });
