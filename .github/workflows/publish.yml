@@ -1,0 +1,41 @@
+name: 发布至npm
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    # Clone 仓库
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      # 安装 Node.js
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          registry-url: https://registry.npmjs.org/
+
+      # 安装相关插件，转换图片。
+      - name: 安装依赖 & 编译
+        run: |
+          npm install
+          npm install -g typescript
+          npm run build
+
+      # 发布 NPM 包
+      - name: 发布至 npm
+        run: |
+          cd dist
+          git config --global user.email "zhuxiaole@zhuxiaole.org"
+          git config --global user.name "猪小乐"
+          npm version patch
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
