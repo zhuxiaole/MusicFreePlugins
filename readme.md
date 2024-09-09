@@ -25,3 +25,4 @@ https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreeP
 
 - 搜索歌词
 - 播放和下载歌曲切换音质（切换音质后MusicFree播放界面无法获取时长，所以放弃了）
+- 导入单曲和歌单（其实不需要，直接在歌单或者专辑详情页点击“添加”或者“收藏”，一样的效果）
