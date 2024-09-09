@@ -62,6 +62,9 @@ async function run() {
     // 复制 publish-package.json 至 dist/package.json
     await fs.copyFile(path.resolve(basePath, 'publish-package.json'), distPackagePath);
 
+    // 复制 navidrome/index.js 至 dist/index.js
+    await fs.copyFile(path.resolve(distPath, 'navidrome', 'index.js'), path.resolve(distPath, 'index.js'));
+
     console.log('done√');
 }
 
