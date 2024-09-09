@@ -35,7 +35,6 @@ jobs:
           cd dist
           git config --global user.email "zhuxiaole@zhuxiaole.org"
           git config --global user.name "猪小乐"
-          npm version patch
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
