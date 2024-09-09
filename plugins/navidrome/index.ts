@@ -445,6 +445,31 @@ async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
   ).data;
 }
 
+// 获取navidrome专辑详情
+function getNdAlbumInfo(id): Promise<any> {
+  return service.get(`/api/album/${id}`).then((resp) => {
+    return Promise.resolve(resp.data);
+  });
+}
+
+// 获取navidrome专辑歌曲列表
+function getNdAlbumSongList(albumId, page): Promise<any> {
+  const startIndex = (page - 1) * PAGE_SIZE;
+  return service
+    .get("/api/song", {
+      params: {
+        album_id: albumId,
+        _start: startIndex,
+        _end: startIndex + PAGE_SIZE,
+        _order: "ASC",
+        _sort: "album",
+      },
+    })
+    .then((resp) => {
+      return Promise.resolve(resp.data);
+    });
+}
+
 function formatMusicItem(it) {
   const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
   let rawLrc = "";
@@ -659,23 +684,13 @@ async function getMusicInfo(musicItem) {
 }
 
 async function getAlbumInfo(albumItem, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
-
-  const albumRequest = service.get(`/api/album/${albumItem.id}`);
-  const songsRequest = service.get("/api/song", {
-    params: {
-      album_id: albumItem.id,
-      _start: startIndex,
-      _end: startIndex + PAGE_SIZE,
-      _order: "ASC",
-      _sort: "album",
-    },
-  });
+  const albumRequest = getNdAlbumInfo(albumItem.id);
+  const songsRequest = getNdAlbumSongList(albumItem.id, page);
 
   const datas = await Promise.all([albumRequest, songsRequest]);
 
-  const album = datas[0]?.data;
-  const song = datas[1]?.data;
+  const album = datas[0];
+  const song = datas[1];
 
   return {
     isEnd: song == null ? true : song.length < PAGE_SIZE,

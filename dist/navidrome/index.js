@@ -348,6 +348,27 @@ async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
         },
     })).data;
 }
+function getNdAlbumInfo(id) {
+    return service.get(`/api/album/${id}`).then((resp) => {
+        return Promise.resolve(resp.data);
+    });
+}
+function getNdAlbumSongList(albumId, page) {
+    const startIndex = (page - 1) * PAGE_SIZE;
+    return service
+        .get("/api/song", {
+        params: {
+            album_id: albumId,
+            _start: startIndex,
+            _end: startIndex + PAGE_SIZE,
+            _order: "ASC",
+            _sort: "album",
+        },
+    })
+        .then((resp) => {
+        return Promise.resolve(resp.data);
+    });
+}
 function formatMusicItem(it) {
     var _a;
     const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
@@ -534,27 +555,18 @@ async function getMusicInfo(musicItem) {
     return formatMusicItem(data);
 }
 async function getAlbumInfo(albumItem, page) {
-    var _a, _b, _c, _d, _e;
-    const startIndex = (page - 1) * PAGE_SIZE;
-    const albumRequest = service.get(`/api/album/${albumItem.id}`);
-    const songsRequest = service.get("/api/song", {
-        params: {
-            album_id: albumItem.id,
-            _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
-            _order: "ASC",
-            _sort: "album",
-        },
-    });
+    var _a, _b, _c;
+    const albumRequest = getNdAlbumInfo(albumItem.id);
+    const songsRequest = getNdAlbumSongList(albumItem.id, page);
     const datas = await Promise.all([albumRequest, songsRequest]);
-    const album = (_a = datas[0]) === null || _a === void 0 ? void 0 : _a.data;
-    const song = (_b = datas[1]) === null || _b === void 0 ? void 0 : _b.data;
+    const album = datas[0];
+    const song = datas[1];
     return {
         isEnd: song == null ? true : song.length < PAGE_SIZE,
-        musicList: (_c = song === null || song === void 0 ? void 0 : song.map(formatMusicItem)) !== null && _c !== void 0 ? _c : [],
+        musicList: (_a = song === null || song === void 0 ? void 0 : song.map(formatMusicItem)) !== null && _a !== void 0 ? _a : [],
         sheetItem: {
-            worksNums: (_d = album === null || album === void 0 ? void 0 : album.songCount) !== null && _d !== void 0 ? _d : 0,
-            playCount: (_e = album === null || album === void 0 ? void 0 : album.playCount) !== null && _e !== void 0 ? _e : 0,
+            worksNums: (_b = album === null || album === void 0 ? void 0 : album.songCount) !== null && _b !== void 0 ? _b : 0,
+            playCount: (_c = album === null || album === void 0 ? void 0 : album.playCount) !== null && _c !== void 0 ? _c : 0,
         },
     };
 }

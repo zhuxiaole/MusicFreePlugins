@@ -45,13 +45,13 @@ const navidrome = require("../plugins/navidrome/index");
 //     console.log(res);
 //   });
 
-// navidrome
-//   .getAlbumInfo({
-//     id: "0f221edbbab7def63f003acf76f8ce32",
-//   })
-//   .then((res) => {
-//     console.log(res);
-//   });
+navidrome
+  .getAlbumInfo({
+    id: "0f221edbbab7def63f003acf76f8ce32",
+  })
+  .then((res) => {
+    console.log(res);
+  });
 
 // navidrome
 //   .getArtistWorks(
@@ -65,9 +65,9 @@ const navidrome = require("../plugins/navidrome/index");
 //     console.log(res);
 //   });
 
-navidrome.getTopLists().then((res) => {
-  console.log(res);
-});
+// navidrome.getTopLists().then((res) => {
+//   console.log(res);
+// });
 
 // navidrome
 //   .getMediaSource(
