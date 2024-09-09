@@ -15,7 +15,7 @@ https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreeP
 #### Navidrome
 
 - 排行榜（展示的都是专辑）
-- 歌单
+- 热门歌单（默认标签为歌单，其他风格皆为专辑）
 - 搜索音乐、专辑、作者、歌单
 - 播放界面显示海报和歌词
 
