@@ -1,0 +1,29 @@
+{
+  "plugins": [
+    {
+      "name": "云音乐",
+      "url": "https://adad23u.appinstall.life/dist/kuwo/index.js",
+      "version": "0.1.6"
+    },
+    {
+      "name": "QQ音乐",
+      "url": "https://adad23u.appinstall.life/dist/qq/index.js",
+      "version": "0.2.2"
+    },
+    {
+      "name": "酷歌词",
+      "url": "https://gitee.com/ThomasYou/musicfree/raw/master/dist/kugeci.js",
+      "version": "0.0.0"
+    },
+    {
+      "name": "网易云",
+      "url": "https://adad23u.appinstall.life/dist/netease/index.js",
+      "version": "0.1.2"
+    },
+    {
+      "name": "Navidrome",
+      "url": "https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js",
+      "version": "0.0.5"
+    }
+  ]
+}

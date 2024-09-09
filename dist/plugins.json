@@ -1,0 +1,9 @@
+{
+  "plugins": [
+    {
+      "name": "Navidrome",
+      "url": "https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js",
+      "version": "0.0.5"
+    }
+  ]
+}

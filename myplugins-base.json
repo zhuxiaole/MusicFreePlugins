@@ -6,11 +6,6 @@
       "version": "0.1.6"
     },
     {
-      "name": "Navidrome",
-      "url": "https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js",
-      "version": "0.0.5"
-    },
-    {
       "name": "QQ音乐",
       "url": "https://adad23u.appinstall.life/dist/qq/index.js",
       "version": "0.2.2"
