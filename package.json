@@ -6,7 +6,8 @@
   "scripts": {
     "serve": "http-server .",
     "build": "rollup -c & node ./scripts/generate.js",
-    "test-navidrome": "ts-node -T ./test/test-navidrome.ts"
+    "test-navidrome": "ts-node -T ./test/test-navidrome.ts",
+    "test-emby": "ts-node -T ./test/test-emby.ts"
   },
   "keywords": [],
   "author": {

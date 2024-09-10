@@ -1,12 +1,12 @@
-const axios = require("axios");
-const CryptoJs = require("crypto-js");
-const CookieManager = !env?.debug
+const ndAxios = require("axios");
+const ndCryptoJs = require("crypto-js");
+const ndCookieManager = !env?.debug
   ? require("@react-native-cookies/cookies")
   : null;
 
 const ND_PLUGIN_VERSION = "0.0.5";
-const PAGE_SIZE = 25;
-const UA =
+const ND_PAGE_SIZE = 25;
+const ND_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
 
 const SUBSONIC_API_C = "MusicFree-PigNavidrome";
@@ -14,11 +14,11 @@ const SUBSONIC_API_V = "1.14.0";
 const SUBSONIC_API_F = "json";
 
 // 唯一token请求
-let singletonTokenRequest = null;
+let ndSingletonTokenRequest = null;
 // debug为true时，不使用cookie存储，而使用该变量存储认证信息
-const debugAuthInfo: NdAuthInfo = genDefaultAuthInfo();
+const ndDebugAuthInfo: NdAuthInfo = genDefaultNdAuthInfo();
 
-function genDefaultAuthInfo(): NdAuthInfo {
+function genDefaultNdAuthInfo(): NdAuthInfo {
   return {
     ndBaseUrl: "",
     ndUsername: "",
@@ -28,7 +28,7 @@ function genDefaultAuthInfo(): NdAuthInfo {
   };
 }
 
-function genAuthInfoFromLoginResp(baseUrl, loginResp): NdAuthInfo {
+function genNdAuthInfoFromLoginResp(baseUrl, loginResp): NdAuthInfo {
   return {
     ndBaseUrl: baseUrl ?? "",
     ndUsername: loginResp?.username ?? "",
@@ -38,38 +38,38 @@ function genAuthInfoFromLoginResp(baseUrl, loginResp): NdAuthInfo {
   };
 }
 
-function storeAuthInfo(baseUrl, authInfo: NdAuthInfo): Promise<any> {
-  if (!CookieManager) {
+function storeNdAuthInfo(baseUrl, authInfo: NdAuthInfo): Promise<any> {
+  if (!ndCookieManager) {
     return new Promise<any>((resolve, reject) => {
       try {
-        debugAuthInfo.ndBaseUrl = authInfo?.ndBaseUrl ?? "";
-        debugAuthInfo.ndUsername = authInfo?.ndUsername ?? "";
-        debugAuthInfo.ndToken = authInfo?.ndToken ?? "";
-        debugAuthInfo.subsonicSalt = authInfo?.subsonicSalt ?? "";
-        debugAuthInfo.subsonicToken = authInfo?.subsonicToken ?? "";
+        ndDebugAuthInfo.ndBaseUrl = authInfo?.ndBaseUrl ?? "";
+        ndDebugAuthInfo.ndUsername = authInfo?.ndUsername ?? "";
+        ndDebugAuthInfo.ndToken = authInfo?.ndToken ?? "";
+        ndDebugAuthInfo.subsonicSalt = authInfo?.subsonicSalt ?? "";
+        ndDebugAuthInfo.subsonicToken = authInfo?.subsonicToken ?? "";
         resolve("success");
       } catch (err) {
         reject(err);
       }
     });
   } else {
-    const ndBaseUrlStore = CookieManager.set(baseUrl, {
+    const ndBaseUrlStore = ndCookieManager.set(baseUrl, {
       name: "ndBaseUrl",
       value: authInfo?.ndBaseUrl ?? "",
     });
-    const ndUsernameStore = CookieManager.set(baseUrl, {
+    const ndUsernameStore = ndCookieManager.set(baseUrl, {
       name: "ndUsername",
       value: authInfo?.ndUsername ?? "",
     });
-    const ndTokenStore = CookieManager.set(baseUrl, {
+    const ndTokenStore = ndCookieManager.set(baseUrl, {
       name: "ndToken",
       value: authInfo?.ndToken ?? "",
     });
-    const subsonicSaltStore = CookieManager.set(baseUrl, {
+    const subsonicSaltStore = ndCookieManager.set(baseUrl, {
       name: "subsonicSalt",
       value: authInfo?.subsonicSalt ?? "",
     });
-    const subsonicTokenStore = CookieManager.set(baseUrl, {
+    const subsonicTokenStore = ndCookieManager.set(baseUrl, {
       name: "subsonicToken",
       value: authInfo?.subsonicToken ?? "",
     });
@@ -83,13 +83,13 @@ function storeAuthInfo(baseUrl, authInfo: NdAuthInfo): Promise<any> {
   }
 }
 
-function getStoredAuthInfo(baseUrl): Promise<NdAuthInfo> {
-  if (!CookieManager) {
+function getStoredNdAuthInfo(baseUrl): Promise<NdAuthInfo> {
+  if (!ndCookieManager) {
     return new Promise<any>((resolve) => {
-      resolve(debugAuthInfo);
+      resolve(ndDebugAuthInfo);
     });
   } else {
-    return CookieManager.get(baseUrl).then((cookies) => {
+    return ndCookieManager.get(baseUrl).then((cookies) => {
       return Promise.resolve({
         ndBaseUrl: cookies.ndBaseUrl?.value,
         ndUsername: cookies.ndUsername?.value,
@@ -101,11 +101,11 @@ function getStoredAuthInfo(baseUrl): Promise<NdAuthInfo> {
   }
 }
 
-function resetStoredAuthInfo(baseUrl): Promise<any> {
-  return storeAuthInfo(baseUrl, genDefaultAuthInfo());
+function resetStoredNdAuthInfo(baseUrl): Promise<any> {
+  return storeNdAuthInfo(baseUrl, genDefaultNdAuthInfo());
 }
 
-function getUserVariables() {
+function getNdUserVariables() {
   let userVariables = env?.getUserVariables() ?? {};
   if (
     !userVariables?.url?.startsWith("http://") &&
@@ -117,15 +117,15 @@ function getUserVariables() {
 }
 
 function getConfigNdBaseUrl() {
-  return getUserVariables()?.url;
+  return getNdUserVariables()?.url;
 }
 
 function getConfigNdUsername() {
-  return getUserVariables()?.username;
+  return getNdUserVariables()?.username;
 }
 
 function getConfigNdPassword() {
-  return getUserVariables()?.password;
+  return getNdUserVariables()?.password;
 }
 
 function isSubsonicAuthInfoValid(info) {
@@ -144,7 +144,7 @@ function isNdAuthInfoValid(info) {
   return info && info.ndToken && info.ndToken.length > 0;
 }
 
-function isLoginUrl(baseUrl, url) {
+function isNdLoginUrl(baseUrl, url) {
   return (
     baseUrl &&
     baseUrl === getConfigNdBaseUrl() &&
@@ -164,7 +164,7 @@ function isSubsonicUrl(baseUrl, url) {
 
 function isNdUrl(baseUrl, url) {
   return (
-    isLoginUrl(baseUrl, url) ||
+    isNdLoginUrl(baseUrl, url) ||
     (baseUrl &&
       baseUrl === getConfigNdBaseUrl() &&
       url &&
@@ -173,13 +173,13 @@ function isNdUrl(baseUrl, url) {
 }
 
 // axios实例
-const service = axios.create({
+const ndService = ndAxios.create({
   timeout: 30000,
-  headers: { "User-Agent": UA },
+  headers: { "User-Agent": ND_UA },
 });
 
 // 请求拦截器
-service.interceptors.request.use(
+ndService.interceptors.request.use(
   async function (config) {
     config.baseURL = config.baseURL ?? getConfigNdBaseUrl();
 
@@ -187,12 +187,12 @@ service.interceptors.request.use(
       config.headers["Content-Type"] = "application/json;charset=utf-8";
     }
 
-    const ifLoginUrl = isLoginUrl(config.baseURL, config.url);
+    const ifLoginUrl = isNdLoginUrl(config.baseURL, config.url);
     const ifSubsonicUrl = isSubsonicUrl(config.baseURL, config.url);
     const ifNdUrl = isNdUrl(config.baseURL, config.url);
 
     if ((ifNdUrl || ifSubsonicUrl) && !ifLoginUrl) {
-      let authInfo = await getStoredAuthInfo(config.baseURL);
+      let authInfo = await getStoredNdAuthInfo(config.baseURL);
 
       // 如果用户配置的url或者用户名与cookie存储的不同，则清除cookie存储的认证信息
       const baseURLHost = config.baseURL ? new URL(config.baseURL).host : null;
@@ -204,7 +204,7 @@ service.interceptors.request.use(
         baseURLHost !== storedBaseURLHost ||
         getConfigNdUsername() !== authInfo?.ndUsername
       ) {
-        await resetStoredAuthInfo(config.baseURL);
+        await resetStoredNdAuthInfo(config.baseURL);
         authInfo = null;
       }
 
@@ -213,8 +213,8 @@ service.interceptors.request.use(
         (ifSubsonicUrl && !isSubsonicAuthInfoValid(authInfo))
       ) {
         // 请求token
-        await requestToken();
-        authInfo = await getStoredAuthInfo(config.baseURL);
+        await requestNdToken();
+        authInfo = await getStoredNdAuthInfo(config.baseURL);
       }
 
       if (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo)) {
@@ -242,7 +242,7 @@ service.interceptors.request.use(
 );
 
 // 响应拦截器
-service.interceptors.response.use(
+ndService.interceptors.response.use(
   async function (response) {
     return Promise.resolve(response);
   },
@@ -256,44 +256,44 @@ service.interceptors.response.use(
 
       // token 失效处理
       if (ifNdUrl || ifSubsonicUrl) {
-        if (!isLoginUrl(error.config.baseURL, error.config.url)) {
+        if (!isNdLoginUrl(error.config.baseURL, error.config.url)) {
           // 1. 刷新 token
-          await requestToken();
-          const authInfo = await getStoredAuthInfo(error.config.baseURL);
+          await requestNdToken();
+          const authInfo = await getStoredNdAuthInfo(error.config.baseURL);
           if (
             (ifNdUrl && isNdAuthInfoValid(authInfo)) ||
             (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo))
           ) {
             // token 有效，重新请求
-            return await service.request(error.config);
+            return await ndService.request(error.config);
           }
         }
-        await resetStoredAuthInfo(error.config.baseURL);
+        await resetStoredNdAuthInfo(error.config.baseURL);
       }
     }
     return Promise.reject(error);
   }
 );
 
-function requestToken(): Promise<any> {
-  // 如果 singletonTokenRequest 不为 null 说明已经在刷新中，直接返回
-  if (singletonTokenRequest !== null) {
-    return singletonTokenRequest;
+function requestNdToken(): Promise<any> {
+  // 如果 ndSingletonTokenRequest 不为 null 说明已经在刷新中，直接返回
+  if (ndSingletonTokenRequest !== null) {
+    return ndSingletonTokenRequest;
   }
 
-  let { _, username, password } = getUserVariables();
+  let { _, username, password } = getNdUserVariables();
 
-  // 设置 singletonTokenRequest 为一个 Promise 对象 , 处理刷新 token 请求
-  singletonTokenRequest = new Promise<any>(async function (resolve, reject) {
+  // 设置 ndSingletonTokenRequest 为一个 Promise 对象 , 处理刷新 token 请求
+  ndSingletonTokenRequest = new Promise<any>(async function (resolve, reject) {
     const baseUrl = getConfigNdBaseUrl();
-    await service
+    await ndService
       .post("/auth/login", {
         username,
         password,
       })
       .then(({ data }) => {
         // 存储Token
-        storeAuthInfo(baseUrl, genAuthInfoFromLoginResp(baseUrl, data))
+        storeNdAuthInfo(baseUrl, genNdAuthInfoFromLoginResp(baseUrl, data))
           .then(() => {
             resolve(data);
           })
@@ -302,17 +302,17 @@ function requestToken(): Promise<any> {
           });
       })
       .catch((err) => {
-        resetStoredAuthInfo(baseUrl).finally(() => {
+        resetStoredNdAuthInfo(baseUrl).finally(() => {
           reject(err);
         });
       });
   });
 
-  // 最终将 singletonTokenRequest 设置为 null, 防止 singletonTokenRequest 一直占用
-  singletonTokenRequest.finally(() => {
-    singletonTokenRequest = null;
+  // 最终将 ndSingletonTokenRequest 设置为 null, 防止 ndSingletonTokenRequest 一直占用
+  ndSingletonTokenRequest.finally(() => {
+    ndSingletonTokenRequest = null;
   });
-  return singletonTokenRequest;
+  return ndSingletonTokenRequest;
 }
 
 function genSalt() {
@@ -320,7 +320,7 @@ function genSalt() {
 }
 
 function getSubsonicURL(pathname) {
-  let { url, username, password } = getUserVariables();
+  let { url, username, password } = getNdUserVariables();
   if (!(url && username && password)) {
     return null;
   }
@@ -334,7 +334,7 @@ function getSubsonicURL(pathname) {
   urlObj.searchParams.append("s", salt);
   urlObj.searchParams.append(
     "t",
-    CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex)
+    ndCryptoJs.MD5(`${password}${salt}`).toString(ndCryptoJs.enc.Hex)
   );
   urlObj.searchParams.append("c", SUBSONIC_API_C);
   urlObj.searchParams.append("v", SUBSONIC_API_V);
@@ -351,14 +351,14 @@ function getCoverArtUrl(coverArt) {
 
 // 获取navidrome歌单列表
 async function getNdPlaylists(query, sort, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
+  const startIndex = (page - 1) * ND_PAGE_SIZE;
 
   return (
-    await service.get("/api/playlist", {
+    await ndService.get("/api/playlist", {
       params: {
         q: query,
         _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
+        _end: startIndex + ND_PAGE_SIZE,
         _sort: sort,
       },
     })
@@ -406,15 +406,15 @@ async function getNdAlbumList(type, page, size) {
       break;
   }
 
-  return (await service.get("/api/album", { params })).data;
+  return (await ndService.get("/api/album", { params })).data;
 }
 
 // 获取navidrome相关（作者、风格）专辑列表
 async function getNdRelatedAlbumList(artist_id, genre_id, page, order, sort) {
-  const startIndex = (page - 1) * PAGE_SIZE;
+  const startIndex = (page - 1) * ND_PAGE_SIZE;
   const params = {
     _start: startIndex,
-    _end: startIndex + PAGE_SIZE,
+    _end: startIndex + ND_PAGE_SIZE,
     _order: order,
     _sort: sort,
   };
@@ -427,18 +427,18 @@ async function getNdRelatedAlbumList(artist_id, genre_id, page, order, sort) {
     params["genre_id"] = genre_id;
   }
 
-  return (await service.get("/api/album", { params })).data;
+  return (await ndService.get("/api/album", { params })).data;
 }
 
 // 获取navidrome歌单中的歌曲列表
 async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
-  const startIndex = (page - 1) * PAGE_SIZE;
+  const startIndex = (page - 1) * ND_PAGE_SIZE;
   return (
-    await service.get(`/api/playlist/${playlistId}/tracks`, {
+    await ndService.get(`/api/playlist/${playlistId}/tracks`, {
       params: {
         playlist_id: playlistId,
         _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
+        _end: startIndex + ND_PAGE_SIZE,
         _order: order,
         _sort: sort,
       },
@@ -448,20 +448,20 @@ async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
 
 // 获取navidrome专辑详情
 function getNdAlbumInfo(id): Promise<any> {
-  return service.get(`/api/album/${id}`).then((resp) => {
+  return ndService.get(`/api/album/${id}`).then((resp) => {
     return Promise.resolve(resp.data);
   });
 }
 
 // 获取navidrome专辑歌曲列表
 function getNdAlbumSongList(albumId, page): Promise<any> {
-  const startIndex = (page - 1) * PAGE_SIZE;
-  return service
+  const startIndex = (page - 1) * ND_PAGE_SIZE;
+  return ndService
     .get("/api/song", {
       params: {
         album_id: albumId,
         _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
+        _end: startIndex + ND_PAGE_SIZE,
         _order: "ASC",
         _sort: "album",
       },
@@ -546,19 +546,19 @@ function formatPlaylistItem(it) {
 }
 
 async function searchMusic(query, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
+  const startIndex = (page - 1) * ND_PAGE_SIZE;
   const data = (
-    await service.get("/api/song", {
+    await ndService.get("/api/song", {
       params: {
         title: query,
         _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
+        _end: startIndex + ND_PAGE_SIZE,
       },
     })
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < PAGE_SIZE,
+    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
     data: data?.map(formatMusicItem) ?? [],
   };
 }
@@ -567,7 +567,7 @@ async function searchSheet(query, page) {
   const data = await getNdPlaylists(query, "", page);
 
   return {
-    isEnd: data == null ? true : data.length < PAGE_SIZE,
+    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
     data:
       data?.map((it) => {
         return {
@@ -580,11 +580,11 @@ async function searchSheet(query, page) {
 
 async function searchAlbum(query, page) {
   const data = (
-    await service.get("/rest/search3", {
+    await ndService.get("/rest/search3", {
       params: {
         query,
-        albumCount: PAGE_SIZE,
-        albumOffset: (page - 1) * PAGE_SIZE,
+        albumCount: ND_PAGE_SIZE,
+        albumOffset: (page - 1) * ND_PAGE_SIZE,
         songCount: 0,
         artistCount: 0,
       },
@@ -594,113 +594,35 @@ async function searchAlbum(query, page) {
   const albums = data["subsonic-response"]?.searchResult3?.album;
 
   return {
-    isEnd: albums == null ? true : albums.length < PAGE_SIZE,
+    isEnd: albums == null ? true : albums.length < ND_PAGE_SIZE,
     data: albums?.map(formatAlbumItem) ?? [],
   };
 }
 
 async function searchArtist(query, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
+  const startIndex = (page - 1) * ND_PAGE_SIZE;
   const data = (
-    await service.get("/api/artist", {
+    await ndService.get("/api/artist", {
       params: {
         name: query,
         _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
+        _end: startIndex + ND_PAGE_SIZE,
       },
     })
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < PAGE_SIZE,
+    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
     data: data?.map(formatArtistItem) ?? [],
   };
 }
 
-async function search(query, page, type) {
-  if (type === "music") {
-    return await searchMusic(query, page);
-  }
-  if (type === "album") {
-    return await searchAlbum(query, page);
-  }
-  if (type === "artist") {
-    return await searchArtist(query, page);
-  }
-  if (type === "sheet") {
-    return await searchSheet(query, page);
-  }
-}
-
 async function scrobble(id) {
-  await service.get("/rest/scrobble", {
+  await ndService.get("/rest/scrobble", {
     params: {
       id: id,
     },
   });
-}
-
-async function getMediaSource(musicItem, quality) {
-  // 播放记录
-  scrobble(musicItem.id);
-
-  // 强制不转码，转码后播放器不显示时长
-  quality = "super";
-
-  let maxBitRate, format;
-
-  switch (quality) {
-    case "low":
-      maxBitRate = "128";
-      format = "mp3";
-      break;
-    case "standard":
-      maxBitRate = "256";
-      format = "mp3";
-      break;
-    case "high":
-      maxBitRate = "320";
-      format = "aac";
-      break;
-    default:
-      maxBitRate = "0";
-      format = "raw";
-      break;
-  }
-
-  const urlObj = getSubsonicURL("/rest/stream");
-  urlObj.searchParams.append("id", musicItem.id);
-  urlObj.searchParams.append("maxBitRate", maxBitRate);
-  urlObj.searchParams.append("format", format);
-
-  return {
-    url: urlObj.toString(),
-  };
-}
-
-async function getMusicInfo(musicItem) {
-  const data = (await service.get(`/api/song/${musicItem.id}`)).data;
-
-  return formatMusicItem(data);
-}
-
-async function getAlbumInfo(albumItem, page) {
-  const albumRequest = getNdAlbumInfo(albumItem.id);
-  const songsRequest = getNdAlbumSongList(albumItem.id, page);
-
-  const datas = await Promise.all([albumRequest, songsRequest]);
-
-  const album = datas[0];
-  const song = datas[1];
-
-  return {
-    isEnd: song == null ? true : song.length < PAGE_SIZE,
-    musicList: song?.map(formatMusicItem) ?? [],
-    sheetItem: {
-      worksNums: album?.songCount ?? 0,
-      playCount: album?.playCount ?? 0,
-    },
-  };
 }
 
 function convertToLRC(jsonLyrics) {
@@ -723,89 +645,6 @@ function convertToLRC(jsonLyrics) {
   return lrcLyrics;
 }
 
-async function getLyric(musicItem) {
-  const data = (
-    await service.get("/rest/getLyricsBySongId", {
-      params: {
-        id: musicItem.id,
-      },
-    })
-  ).data;
-
-  const lyricLines =
-    data["subsonic-response"]?.lyricsList?.structuredLyrics[0]?.line;
-
-  return {
-    rawLrc: convertToLRC(lyricLines),
-  };
-}
-
-async function getRecommendSheetTags() {
-  const resp = (await service.get("/api/genre")).data;
-
-  const data = resp?.map((it) => ({
-    id: it.id,
-    title: it.name,
-  }));
-
-  return {
-    pinned: data,
-    data: [
-      {
-        title: "风格",
-        data: data,
-      },
-    ],
-  };
-}
-
-async function getRecommendSheetsByTag(tagItem, page) {
-  let sheetList;
-  if (!tagItem || !tagItem.id || tagItem.id.length <= 0) {
-    // 获取navidrome歌单列表
-    const data = await getNdPlaylists("", "name", page);
-    sheetList =
-      data?.map((it) => {
-        return {
-          ...formatPlaylistItem(it),
-          sheetType: "playlist",
-        };
-      }) ?? [];
-  } else {
-    // 获取对应风格的专辑列表
-    const data = await getNdRelatedAlbumList(
-      "",
-      tagItem.id,
-      page,
-      "ASC",
-      "max_year asc,date asc"
-    );
-    sheetList = data?.map(formatAlbumSheetItem) ?? [];
-  }
-
-  return {
-    isEnd: sheetList == null ? true : sheetList.length < PAGE_SIZE,
-    data: sheetList,
-  };
-}
-
-async function getMusicSheetInfo(sheetItem, page) {
-  let musicList = null;
-
-  if (sheetItem.sheetType === "playlist") {
-    const data = await getNdPlaylistTracks(sheetItem.id, "ASC", "id");
-    musicList = data?.map(formatPlaylistMusicItem) ?? [];
-  } else if (sheetItem.sheetType === "album") {
-    const data = await getAlbumInfo(sheetItem, page);
-    musicList = data?.musicList ?? [];
-  }
-
-  return {
-    isEnd: musicList == null ? true : musicList.length < PAGE_SIZE,
-    musicList: musicList,
-  };
-}
-
 async function getArtistAlbums(artistItem, page) {
   const data = await getNdRelatedAlbumList(
     artistItem.id,
@@ -816,19 +655,19 @@ async function getArtistAlbums(artistItem, page) {
   );
 
   return {
-    isEnd: data == null ? true : data.length < PAGE_SIZE,
+    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
     data: data?.map(formatAlbumItem) ?? [],
   };
 }
 
 async function getArtistMusics(artistItem, page) {
-  const startIndex = (page - 1) * PAGE_SIZE;
+  const startIndex = (page - 1) * ND_PAGE_SIZE;
   const data = (
-    await service.get("/api/song", {
+    await ndService.get("/api/song", {
       params: {
         artist_id: artistItem.id,
         _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
+        _end: startIndex + ND_PAGE_SIZE,
         _order: "ASC",
         _sort: "title",
       },
@@ -836,18 +675,9 @@ async function getArtistMusics(artistItem, page) {
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < PAGE_SIZE,
+    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
     data: data?.map(formatMusicItem) ?? [],
   };
-}
-
-async function getArtistWorks(artistItem, page, type) {
-  if (type === "album") {
-    return await getArtistAlbums(artistItem, page);
-  }
-  if (type === "music") {
-    return await getArtistMusics(artistItem, page);
-  }
 }
 
 function formatAlbumSheetItem(it) {
@@ -867,82 +697,24 @@ async function getAlbumSheetList(type, page, size) {
   return album?.map(formatAlbumSheetItem) ?? [];
 }
 
-/// 榜单列表
-async function getTopLists() {
-  const result = [];
+// 获取专辑类型榜单或者歌单详情
+async function getNdAlbumSheetInfo(albumItem, page) {
+  const albumRequest = getNdAlbumInfo(albumItem.id);
+  const songsRequest = getNdAlbumSongList(albumItem.id, page);
 
-  // 最近播放的专辑
-  const recentList = getAlbumSheetList("recent", 1, 10);
-  // 收藏专辑
-  const starredList = getAlbumSheetList("starred", 1, 10);
-  // 评分最高的专辑
-  const ratedList = getAlbumSheetList("highest", 1, 10);
-  // 专辑最多播放
-  const frequentList = getAlbumSheetList("frequent", 1, 10);
-  // 最近添加的专辑
-  const newestList = getAlbumSheetList("newest", 1, 10);
-  // 随机专辑
-  const randomList = getAlbumSheetList("random", 1, 10);
+  const datas = await Promise.all([albumRequest, songsRequest]);
 
-  const datas = await Promise.all([
-    recentList,
-    starredList,
-    ratedList,
-    frequentList,
-    newestList,
-    randomList,
-  ]);
+  const album = datas[0];
+  const song = datas[1];
 
-  if (datas[0]?.length > 0) {
-    result.push({
-      title: "最近播放的专辑",
-      data: datas[0],
-    });
-  }
-
-  if (datas[1]?.length > 0) {
-    result.push({
-      title: "收藏专辑",
-      data: datas[1],
-    });
-  }
-
-  if (datas[2]?.length > 0) {
-    result.push({
-      title: "评分最高的专辑",
-      data: datas[2],
-    });
-  }
-
-  if (datas[3]?.length > 0) {
-    result.push({
-      title: "播放最多的专辑",
-      data: datas[3],
-    });
-  }
-
-  if (datas[4]?.length > 0) {
-    result.push({
-      title: "最近添加的专辑",
-      data: datas[4],
-    });
-  }
-
-  if (datas[5]?.length > 0) {
-    result.push({
-      title: "随机专辑",
-      data: datas[5],
-    });
-  }
-
-  return result;
-}
-
-// 获取榜单详情
-async function getTopListDetail(topListItem, page) {
-  if (topListItem.sheetType === "album") {
-    return await getAlbumInfo(topListItem, page);
-  }
+  return {
+    isEnd: song == null ? true : song.length < ND_PAGE_SIZE,
+    musicList: song?.map(formatMusicItem) ?? [],
+    sheetItem: {
+      worksNums: album?.songCount ?? 0,
+      playCount: album?.playCount ?? 0,
+    },
+  };
 }
 
 type NdAuthInfo = {
@@ -976,15 +748,235 @@ module.exports = {
     },
   ],
   supportedSearchType: ["music", "album", "artist", "sheet"],
-  search,
-  getMediaSource,
-  getMusicInfo,
-  getAlbumInfo,
-  getLyric,
-  getRecommendSheetTags,
-  getRecommendSheetsByTag,
-  getMusicSheetInfo,
-  getArtistWorks,
-  getTopLists,
-  getTopListDetail,
+  // 搜索
+  async search(query, page, type) {
+    if (type === "music") {
+      return await searchMusic(query, page);
+    }
+    if (type === "album") {
+      return await searchAlbum(query, page);
+    }
+    if (type === "artist") {
+      return await searchArtist(query, page);
+    }
+    if (type === "sheet") {
+      return await searchSheet(query, page);
+    }
+  },
+  // 获取歌曲播放流
+  async getMediaSource(musicItem, quality) {
+    // 播放记录
+    scrobble(musicItem.id);
+
+    // 强制不转码，转码后播放器不显示时长
+    quality = "super";
+
+    let maxBitRate, format;
+
+    switch (quality) {
+      case "low":
+        maxBitRate = "128";
+        format = "mp3";
+        break;
+      case "standard":
+        maxBitRate = "256";
+        format = "mp3";
+        break;
+      case "high":
+        maxBitRate = "320";
+        format = "aac";
+        break;
+      default:
+        maxBitRate = "0";
+        format = "raw";
+        break;
+    }
+
+    const urlObj = getSubsonicURL("/rest/stream");
+    urlObj.searchParams.append("id", musicItem.id);
+    urlObj.searchParams.append("maxBitRate", maxBitRate);
+    urlObj.searchParams.append("format", format);
+
+    return {
+      url: urlObj.toString(),
+    };
+  },
+  // 获取歌曲详情
+  async getMusicInfo(musicItem) {
+    const data = (await ndService.get(`/api/song/${musicItem.id}`)).data;
+
+    return formatMusicItem(data);
+  },
+  // 获取专辑详情
+  async getAlbumInfo(albumItem, page) {
+    return await getNdAlbumSheetInfo(albumItem, page);
+  },
+  // 获取歌词
+  async getLyric(musicItem) {
+    const data = (
+      await ndService.get("/rest/getLyricsBySongId", {
+        params: {
+          id: musicItem.id,
+        },
+      })
+    ).data;
+
+    const lyricLines =
+      data["subsonic-response"]?.lyricsList?.structuredLyrics[0]?.line;
+
+    return {
+      rawLrc: convertToLRC(lyricLines),
+    };
+  },
+  // 获取推荐歌单标签
+  async getRecommendSheetTags() {
+    const resp = (await ndService.get("/api/genre")).data;
+
+    const data = resp?.map((it) => ({
+      id: it.id,
+      title: it.name,
+    }));
+
+    return {
+      pinned: data,
+      data: [
+        {
+          title: "风格",
+          data: data,
+        },
+      ],
+    };
+  },
+  // 获取推荐歌单
+  async getRecommendSheetsByTag(tagItem, page) {
+    let sheetList;
+    if (!tagItem || !tagItem.id || tagItem.id.length <= 0) {
+      // 获取navidrome歌单列表
+      const data = await getNdPlaylists("", "name", page);
+      sheetList =
+        data?.map((it) => {
+          return {
+            ...formatPlaylistItem(it),
+            sheetType: "playlist",
+          };
+        }) ?? [];
+    } else {
+      // 获取对应风格的专辑列表
+      const data = await getNdRelatedAlbumList(
+        "",
+        tagItem.id,
+        page,
+        "ASC",
+        "max_year asc,date asc"
+      );
+      sheetList = data?.map(formatAlbumSheetItem) ?? [];
+    }
+
+    return {
+      isEnd: sheetList == null ? true : sheetList.length < ND_PAGE_SIZE,
+      data: sheetList,
+    };
+  },
+  // 获取歌单详情
+  async getMusicSheetInfo(sheetItem, page) {
+    let musicList = null;
+
+    if (sheetItem.sheetType === "playlist") {
+      const data = await getNdPlaylistTracks(sheetItem.id, "ASC", "id");
+      musicList = data?.map(formatPlaylistMusicItem) ?? [];
+    } else if (sheetItem.sheetType === "album") {
+      const data = await getNdAlbumSheetInfo(sheetItem, page);
+      musicList = data?.musicList ?? [];
+    }
+
+    return {
+      isEnd: musicList == null ? true : musicList.length < ND_PAGE_SIZE,
+      musicList: musicList,
+    };
+  },
+  // 获取歌手作品列表
+  async getArtistWorks(artistItem, page, type) {
+    if (type === "album") {
+      return await getArtistAlbums(artistItem, page);
+    }
+    if (type === "music") {
+      return await getArtistMusics(artistItem, page);
+    }
+  },
+  // 榜单列表
+  async getTopLists() {
+    const result = [];
+
+    // 最近播放的专辑
+    const recentList = getAlbumSheetList("recent", 1, 10);
+    // 收藏专辑
+    const starredList = getAlbumSheetList("starred", 1, 10);
+    // 评分最高的专辑
+    const ratedList = getAlbumSheetList("highest", 1, 10);
+    // 专辑最多播放
+    const frequentList = getAlbumSheetList("frequent", 1, 10);
+    // 最近添加的专辑
+    const newestList = getAlbumSheetList("newest", 1, 10);
+    // 随机专辑
+    const randomList = getAlbumSheetList("random", 1, 10);
+
+    const datas = await Promise.all([
+      recentList,
+      starredList,
+      ratedList,
+      frequentList,
+      newestList,
+      randomList,
+    ]);
+
+    if (datas[0]?.length > 0) {
+      result.push({
+        title: "最近播放的专辑",
+        data: datas[0],
+      });
+    }
+
+    if (datas[1]?.length > 0) {
+      result.push({
+        title: "收藏专辑",
+        data: datas[1],
+      });
+    }
+
+    if (datas[2]?.length > 0) {
+      result.push({
+        title: "评分最高的专辑",
+        data: datas[2],
+      });
+    }
+
+    if (datas[3]?.length > 0) {
+      result.push({
+        title: "播放最多的专辑",
+        data: datas[3],
+      });
+    }
+
+    if (datas[4]?.length > 0) {
+      result.push({
+        title: "最近添加的专辑",
+        data: datas[4],
+      });
+    }
+
+    if (datas[5]?.length > 0) {
+      result.push({
+        title: "随机专辑",
+        data: datas[5],
+      });
+    }
+
+    return result;
+  },
+  // 获取榜单详情
+  async getTopListDetail(topListItem, page) {
+    if (topListItem.sheetType === "album") {
+      return await getNdAlbumSheetInfo(topListItem, page);
+    }
+  },
 };

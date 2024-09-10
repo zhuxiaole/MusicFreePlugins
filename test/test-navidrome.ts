@@ -1,12 +1,12 @@
-const test = require("./test-user-vars.json");
+const ndTest = require("./test-user-vars.json");
 
 /// <reference types="../types/global" />
 global.env = {
   getUserVariables: () => {
     return {
-      url: test.navidrome.url,
-      username: test.navidrome.username,
-      password: test.navidrome.password,
+      url: ndTest.navidrome.url,
+      username: ndTest.navidrome.username,
+      password: ndTest.navidrome.password,
     };
   },
   debug: true,

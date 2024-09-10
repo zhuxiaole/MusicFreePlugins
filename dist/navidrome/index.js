@@ -1,17 +1,19 @@
-const axios = require("axios");
-const CryptoJs = require("crypto-js");
-const CookieManager = !(env === null || env === void 0 ? void 0 : env.debug)
+'use strict';
+
+const ndAxios = require("axios");
+const ndCryptoJs = require("crypto-js");
+const ndCookieManager = !(env === null || env === void 0 ? void 0 : env.debug)
     ? require("@react-native-cookies/cookies")
     : null;
 const ND_PLUGIN_VERSION = "0.0.5";
-const PAGE_SIZE = 25;
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
+const ND_PAGE_SIZE = 25;
+const ND_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
 const SUBSONIC_API_C = "MusicFree-PigNavidrome";
 const SUBSONIC_API_V = "1.14.0";
 const SUBSONIC_API_F = "json";
-let singletonTokenRequest = null;
-const debugAuthInfo = genDefaultAuthInfo();
-function genDefaultAuthInfo() {
+let ndSingletonTokenRequest = null;
+const ndDebugAuthInfo = genDefaultNdAuthInfo();
+function genDefaultNdAuthInfo() {
     return {
         ndBaseUrl: "",
         ndUsername: "",
@@ -20,7 +22,7 @@ function genDefaultAuthInfo() {
         subsonicToken: "",
     };
 }
-function genAuthInfoFromLoginResp(baseUrl, loginResp) {
+function genNdAuthInfoFromLoginResp(baseUrl, loginResp) {
     var _a, _b, _c, _d;
     return {
         ndBaseUrl: baseUrl !== null && baseUrl !== void 0 ? baseUrl : "",
@@ -30,17 +32,17 @@ function genAuthInfoFromLoginResp(baseUrl, loginResp) {
         subsonicToken: (_d = loginResp === null || loginResp === void 0 ? void 0 : loginResp.subsonicToken) !== null && _d !== void 0 ? _d : "",
     };
 }
-function storeAuthInfo(baseUrl, authInfo) {
+function storeNdAuthInfo(baseUrl, authInfo) {
     var _a, _b, _c, _d, _e;
-    if (!CookieManager) {
+    if (!ndCookieManager) {
         return new Promise((resolve, reject) => {
             var _a, _b, _c, _d, _e;
             try {
-                debugAuthInfo.ndBaseUrl = (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "";
-                debugAuthInfo.ndUsername = (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) !== null && _b !== void 0 ? _b : "";
-                debugAuthInfo.ndToken = (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndToken) !== null && _c !== void 0 ? _c : "";
-                debugAuthInfo.subsonicSalt = (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt) !== null && _d !== void 0 ? _d : "";
-                debugAuthInfo.subsonicToken = (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "";
+                ndDebugAuthInfo.ndBaseUrl = (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "";
+                ndDebugAuthInfo.ndUsername = (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) !== null && _b !== void 0 ? _b : "";
+                ndDebugAuthInfo.ndToken = (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndToken) !== null && _c !== void 0 ? _c : "";
+                ndDebugAuthInfo.subsonicSalt = (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt) !== null && _d !== void 0 ? _d : "";
+                ndDebugAuthInfo.subsonicToken = (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "";
                 resolve("success");
             }
             catch (err) {
@@ -49,23 +51,23 @@ function storeAuthInfo(baseUrl, authInfo) {
         });
     }
     else {
-        const ndBaseUrlStore = CookieManager.set(baseUrl, {
+        const ndBaseUrlStore = ndCookieManager.set(baseUrl, {
             name: "ndBaseUrl",
             value: (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "",
         });
-        const ndUsernameStore = CookieManager.set(baseUrl, {
+        const ndUsernameStore = ndCookieManager.set(baseUrl, {
             name: "ndUsername",
             value: (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) !== null && _b !== void 0 ? _b : "",
         });
-        const ndTokenStore = CookieManager.set(baseUrl, {
+        const ndTokenStore = ndCookieManager.set(baseUrl, {
             name: "ndToken",
             value: (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndToken) !== null && _c !== void 0 ? _c : "",
         });
-        const subsonicSaltStore = CookieManager.set(baseUrl, {
+        const subsonicSaltStore = ndCookieManager.set(baseUrl, {
             name: "subsonicSalt",
             value: (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt) !== null && _d !== void 0 ? _d : "",
         });
-        const subsonicTokenStore = CookieManager.set(baseUrl, {
+        const subsonicTokenStore = ndCookieManager.set(baseUrl, {
             name: "subsonicToken",
             value: (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "",
         });
@@ -78,14 +80,14 @@ function storeAuthInfo(baseUrl, authInfo) {
         ]);
     }
 }
-function getStoredAuthInfo(baseUrl) {
-    if (!CookieManager) {
+function getStoredNdAuthInfo(baseUrl) {
+    if (!ndCookieManager) {
         return new Promise((resolve) => {
-            resolve(debugAuthInfo);
+            resolve(ndDebugAuthInfo);
         });
     }
     else {
-        return CookieManager.get(baseUrl).then((cookies) => {
+        return ndCookieManager.get(baseUrl).then((cookies) => {
             var _a, _b, _c, _d, _e;
             return Promise.resolve({
                 ndBaseUrl: (_a = cookies.ndBaseUrl) === null || _a === void 0 ? void 0 : _a.value,
@@ -97,10 +99,10 @@ function getStoredAuthInfo(baseUrl) {
         });
     }
 }
-function resetStoredAuthInfo(baseUrl) {
-    return storeAuthInfo(baseUrl, genDefaultAuthInfo());
+function resetStoredNdAuthInfo(baseUrl) {
+    return storeNdAuthInfo(baseUrl, genDefaultNdAuthInfo());
 }
-function getUserVariables() {
+function getNdUserVariables() {
     var _a, _b, _c;
     let userVariables = (_a = env === null || env === void 0 ? void 0 : env.getUserVariables()) !== null && _a !== void 0 ? _a : {};
     if (!((_b = userVariables === null || userVariables === void 0 ? void 0 : userVariables.url) === null || _b === void 0 ? void 0 : _b.startsWith("http://")) &&
@@ -111,15 +113,11 @@ function getUserVariables() {
 }
 function getConfigNdBaseUrl() {
     var _a;
-    return (_a = getUserVariables()) === null || _a === void 0 ? void 0 : _a.url;
+    return (_a = getNdUserVariables()) === null || _a === void 0 ? void 0 : _a.url;
 }
 function getConfigNdUsername() {
     var _a;
-    return (_a = getUserVariables()) === null || _a === void 0 ? void 0 : _a.username;
-}
-function getConfigNdPassword() {
-    var _a;
-    return (_a = getUserVariables()) === null || _a === void 0 ? void 0 : _a.password;
+    return (_a = getNdUserVariables()) === null || _a === void 0 ? void 0 : _a.username;
 }
 function isSubsonicAuthInfoValid(info) {
     return (info &&
@@ -133,7 +131,7 @@ function isSubsonicAuthInfoValid(info) {
 function isNdAuthInfoValid(info) {
     return info && info.ndToken && info.ndToken.length > 0;
 }
-function isLoginUrl(baseUrl, url) {
+function isNdLoginUrl(baseUrl, url) {
     return (baseUrl &&
         baseUrl === getConfigNdBaseUrl() &&
         url &&
@@ -146,40 +144,40 @@ function isSubsonicUrl(baseUrl, url) {
         url.startsWith("/rest"));
 }
 function isNdUrl(baseUrl, url) {
-    return (isLoginUrl(baseUrl, url) ||
+    return (isNdLoginUrl(baseUrl, url) ||
         (baseUrl &&
             baseUrl === getConfigNdBaseUrl() &&
             url &&
             url.startsWith("/api")));
 }
-const service = axios.create({
+const ndService = ndAxios.create({
     timeout: 30000,
-    headers: { "User-Agent": UA },
+    headers: { "User-Agent": ND_UA },
 });
-service.interceptors.request.use(async function (config) {
+ndService.interceptors.request.use(async function (config) {
     var _a;
     config.baseURL = (_a = config.baseURL) !== null && _a !== void 0 ? _a : getConfigNdBaseUrl();
     if (config.method === "post") {
         config.headers["Content-Type"] = "application/json;charset=utf-8";
     }
-    const ifLoginUrl = isLoginUrl(config.baseURL, config.url);
+    const ifLoginUrl = isNdLoginUrl(config.baseURL, config.url);
     const ifSubsonicUrl = isSubsonicUrl(config.baseURL, config.url);
     const ifNdUrl = isNdUrl(config.baseURL, config.url);
     if ((ifNdUrl || ifSubsonicUrl) && !ifLoginUrl) {
-        let authInfo = await getStoredAuthInfo(config.baseURL);
+        let authInfo = await getStoredNdAuthInfo(config.baseURL);
         const baseURLHost = config.baseURL ? new URL(config.baseURL).host : null;
         const storedBaseURLHost = (authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl)
             ? new URL(authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl).host
             : null;
         if (baseURLHost !== storedBaseURLHost ||
             getConfigNdUsername() !== (authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername)) {
-            await resetStoredAuthInfo(config.baseURL);
+            await resetStoredNdAuthInfo(config.baseURL);
             authInfo = null;
         }
         if ((ifNdUrl && !isNdAuthInfoValid(authInfo)) ||
             (ifSubsonicUrl && !isSubsonicAuthInfoValid(authInfo))) {
-            await requestToken();
-            authInfo = await getStoredAuthInfo(config.baseURL);
+            await requestNdToken();
+            authInfo = await getStoredNdAuthInfo(config.baseURL);
         }
         if (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo)) {
             config.params = Object.assign({ u: authInfo.ndUsername, s: authInfo.subsonicSalt, t: authInfo.subsonicToken, c: SUBSONIC_API_C, v: SUBSONIC_API_V, f: SUBSONIC_API_F }, config.params);
@@ -192,7 +190,7 @@ service.interceptors.request.use(async function (config) {
 }, (error) => {
     return Promise.reject(error);
 });
-service.interceptors.response.use(async function (response) {
+ndService.interceptors.response.use(async function (response) {
     return Promise.resolve(response);
 }, async function (error) {
     var _a;
@@ -200,33 +198,33 @@ service.interceptors.response.use(async function (response) {
         const ifNdUrl = isNdUrl(error.config.baseURL, error.config.url);
         const ifSubsonicUrl = isSubsonicUrl(error.config.baseURL, error.config.url);
         if (ifNdUrl || ifSubsonicUrl) {
-            if (!isLoginUrl(error.config.baseURL, error.config.url)) {
-                await requestToken();
-                const authInfo = await getStoredAuthInfo(error.config.baseURL);
+            if (!isNdLoginUrl(error.config.baseURL, error.config.url)) {
+                await requestNdToken();
+                const authInfo = await getStoredNdAuthInfo(error.config.baseURL);
                 if ((ifNdUrl && isNdAuthInfoValid(authInfo)) ||
                     (ifSubsonicUrl && isSubsonicAuthInfoValid(authInfo))) {
-                    return await service.request(error.config);
+                    return await ndService.request(error.config);
                 }
             }
-            await resetStoredAuthInfo(error.config.baseURL);
+            await resetStoredNdAuthInfo(error.config.baseURL);
         }
     }
     return Promise.reject(error);
 });
-function requestToken() {
-    if (singletonTokenRequest !== null) {
-        return singletonTokenRequest;
+function requestNdToken() {
+    if (ndSingletonTokenRequest !== null) {
+        return ndSingletonTokenRequest;
     }
-    let { _, username, password } = getUserVariables();
-    singletonTokenRequest = new Promise(async function (resolve, reject) {
+    let { _, username, password } = getNdUserVariables();
+    ndSingletonTokenRequest = new Promise(async function (resolve, reject) {
         const baseUrl = getConfigNdBaseUrl();
-        await service
+        await ndService
             .post("/auth/login", {
             username,
             password,
         })
             .then(({ data }) => {
-            storeAuthInfo(baseUrl, genAuthInfoFromLoginResp(baseUrl, data))
+            storeNdAuthInfo(baseUrl, genNdAuthInfoFromLoginResp(baseUrl, data))
                 .then(() => {
                 resolve(data);
             })
@@ -235,21 +233,21 @@ function requestToken() {
             });
         })
             .catch((err) => {
-            resetStoredAuthInfo(baseUrl).finally(() => {
+            resetStoredNdAuthInfo(baseUrl).finally(() => {
                 reject(err);
             });
         });
     });
-    singletonTokenRequest.finally(() => {
-        singletonTokenRequest = null;
+    ndSingletonTokenRequest.finally(() => {
+        ndSingletonTokenRequest = null;
     });
-    return singletonTokenRequest;
+    return ndSingletonTokenRequest;
 }
 function genSalt() {
     return Math.random().toString(16).slice(2);
 }
 function getSubsonicURL(pathname) {
-    let { url, username, password } = getUserVariables();
+    let { url, username, password } = getNdUserVariables();
     if (!(url && username && password)) {
         return null;
     }
@@ -258,7 +256,7 @@ function getSubsonicURL(pathname) {
     urlObj.pathname = pathname;
     urlObj.searchParams.append("u", username);
     urlObj.searchParams.append("s", salt);
-    urlObj.searchParams.append("t", CryptoJs.MD5(`${password}${salt}`).toString(CryptoJs.enc.Hex));
+    urlObj.searchParams.append("t", ndCryptoJs.MD5(`${password}${salt}`).toString(ndCryptoJs.enc.Hex));
     urlObj.searchParams.append("c", SUBSONIC_API_C);
     urlObj.searchParams.append("v", SUBSONIC_API_V);
     urlObj.searchParams.append("f", SUBSONIC_API_F);
@@ -271,12 +269,12 @@ function getCoverArtUrl(coverArt) {
     return urlObj.toString();
 }
 async function getNdPlaylists(query, sort, page) {
-    const startIndex = (page - 1) * PAGE_SIZE;
-    return (await service.get("/api/playlist", {
+    const startIndex = (page - 1) * ND_PAGE_SIZE;
+    return (await ndService.get("/api/playlist", {
         params: {
             q: query,
             _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
+            _end: startIndex + ND_PAGE_SIZE,
             _sort: sort,
         },
     })).data;
@@ -316,16 +314,14 @@ async function getNdAlbumList(type, page, size) {
             params["_sort"] = "random";
             params["_order"] = "ASC";
             break;
-        default:
-            break;
     }
-    return (await service.get("/api/album", { params })).data;
+    return (await ndService.get("/api/album", { params })).data;
 }
 async function getNdRelatedAlbumList(artist_id, genre_id, page, order, sort) {
-    const startIndex = (page - 1) * PAGE_SIZE;
+    const startIndex = (page - 1) * ND_PAGE_SIZE;
     const params = {
         _start: startIndex,
-        _end: startIndex + PAGE_SIZE,
+        _end: startIndex + ND_PAGE_SIZE,
         _order: order,
         _sort: sort,
     };
@@ -335,33 +331,33 @@ async function getNdRelatedAlbumList(artist_id, genre_id, page, order, sort) {
     if (genre_id && genre_id.length > 0) {
         params["genre_id"] = genre_id;
     }
-    return (await service.get("/api/album", { params })).data;
+    return (await ndService.get("/api/album", { params })).data;
 }
 async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
-    const startIndex = (page - 1) * PAGE_SIZE;
-    return (await service.get(`/api/playlist/${playlistId}/tracks`, {
+    const startIndex = (page - 1) * ND_PAGE_SIZE;
+    return (await ndService.get(`/api/playlist/${playlistId}/tracks`, {
         params: {
             playlist_id: playlistId,
             _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
+            _end: startIndex + ND_PAGE_SIZE,
             _order: order,
             _sort: sort,
         },
     })).data;
 }
 function getNdAlbumInfo(id) {
-    return service.get(`/api/album/${id}`).then((resp) => {
+    return ndService.get(`/api/album/${id}`).then((resp) => {
         return Promise.resolve(resp.data);
     });
 }
 function getNdAlbumSongList(albumId, page) {
-    const startIndex = (page - 1) * PAGE_SIZE;
-    return service
+    const startIndex = (page - 1) * ND_PAGE_SIZE;
+    return ndService
         .get("/api/song", {
         params: {
             album_id: albumId,
             _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
+            _end: startIndex + ND_PAGE_SIZE,
             _order: "ASC",
             _sort: "album",
         },
@@ -445,16 +441,16 @@ function formatPlaylistItem(it) {
 }
 async function searchMusic(query, page) {
     var _a;
-    const startIndex = (page - 1) * PAGE_SIZE;
-    const data = (await service.get("/api/song", {
+    const startIndex = (page - 1) * ND_PAGE_SIZE;
+    const data = (await ndService.get("/api/song", {
         params: {
             title: query,
             _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
+            _end: startIndex + ND_PAGE_SIZE,
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < PAGE_SIZE,
+        isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatMusicItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
@@ -462,7 +458,7 @@ async function searchSheet(query, page) {
     var _a;
     const data = await getNdPlaylists(query, "", page);
     return {
-        isEnd: data == null ? true : data.length < PAGE_SIZE,
+        isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map((it) => {
             return Object.assign(Object.assign({}, formatPlaylistItem(it)), { sheetType: "playlist" });
         })) !== null && _a !== void 0 ? _a : [],
@@ -470,106 +466,42 @@ async function searchSheet(query, page) {
 }
 async function searchAlbum(query, page) {
     var _a, _b, _c;
-    const data = (await service.get("/rest/search3", {
+    const data = (await ndService.get("/rest/search3", {
         params: {
             query,
-            albumCount: PAGE_SIZE,
-            albumOffset: (page - 1) * PAGE_SIZE,
+            albumCount: ND_PAGE_SIZE,
+            albumOffset: (page - 1) * ND_PAGE_SIZE,
             songCount: 0,
             artistCount: 0,
         },
     })).data;
     const albums = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.searchResult3) === null || _b === void 0 ? void 0 : _b.album;
     return {
-        isEnd: albums == null ? true : albums.length < PAGE_SIZE,
+        isEnd: albums == null ? true : albums.length < ND_PAGE_SIZE,
         data: (_c = albums === null || albums === void 0 ? void 0 : albums.map(formatAlbumItem)) !== null && _c !== void 0 ? _c : [],
     };
 }
 async function searchArtist(query, page) {
     var _a;
-    const startIndex = (page - 1) * PAGE_SIZE;
-    const data = (await service.get("/api/artist", {
+    const startIndex = (page - 1) * ND_PAGE_SIZE;
+    const data = (await ndService.get("/api/artist", {
         params: {
             name: query,
             _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
+            _end: startIndex + ND_PAGE_SIZE,
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < PAGE_SIZE,
+        isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatArtistItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
-async function search(query, page, type) {
-    if (type === "music") {
-        return await searchMusic(query, page);
-    }
-    if (type === "album") {
-        return await searchAlbum(query, page);
-    }
-    if (type === "artist") {
-        return await searchArtist(query, page);
-    }
-    if (type === "sheet") {
-        return await searchSheet(query, page);
-    }
-}
 async function scrobble(id) {
-    await service.get("/rest/scrobble", {
+    await ndService.get("/rest/scrobble", {
         params: {
             id: id,
         },
     });
-}
-async function getMediaSource(musicItem, quality) {
-    scrobble(musicItem.id);
-    quality = "super";
-    let maxBitRate, format;
-    switch (quality) {
-        case "low":
-            maxBitRate = "128";
-            format = "mp3";
-            break;
-        case "standard":
-            maxBitRate = "256";
-            format = "mp3";
-            break;
-        case "high":
-            maxBitRate = "320";
-            format = "aac";
-            break;
-        default:
-            maxBitRate = "0";
-            format = "raw";
-            break;
-    }
-    const urlObj = getSubsonicURL("/rest/stream");
-    urlObj.searchParams.append("id", musicItem.id);
-    urlObj.searchParams.append("maxBitRate", maxBitRate);
-    urlObj.searchParams.append("format", format);
-    return {
-        url: urlObj.toString(),
-    };
-}
-async function getMusicInfo(musicItem) {
-    const data = (await service.get(`/api/song/${musicItem.id}`)).data;
-    return formatMusicItem(data);
-}
-async function getAlbumInfo(albumItem, page) {
-    var _a, _b, _c;
-    const albumRequest = getNdAlbumInfo(albumItem.id);
-    const songsRequest = getNdAlbumSongList(albumItem.id, page);
-    const datas = await Promise.all([albumRequest, songsRequest]);
-    const album = datas[0];
-    const song = datas[1];
-    return {
-        isEnd: song == null ? true : song.length < PAGE_SIZE,
-        musicList: (_a = song === null || song === void 0 ? void 0 : song.map(formatMusicItem)) !== null && _a !== void 0 ? _a : [],
-        sheetItem: {
-            worksNums: (_b = album === null || album === void 0 ? void 0 : album.songCount) !== null && _b !== void 0 ? _b : 0,
-            playCount: (_c = album === null || album === void 0 ? void 0 : album.playCount) !== null && _c !== void 0 ? _c : 0,
-        },
-    };
 }
 function convertToLRC(jsonLyrics) {
     let lrcLyrics = "";
@@ -582,101 +514,30 @@ function convertToLRC(jsonLyrics) {
     });
     return lrcLyrics;
 }
-async function getLyric(musicItem) {
-    var _a, _b, _c;
-    const data = (await service.get("/rest/getLyricsBySongId", {
-        params: {
-            id: musicItem.id,
-        },
-    })).data;
-    const lyricLines = (_c = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.lyricsList) === null || _b === void 0 ? void 0 : _b.structuredLyrics[0]) === null || _c === void 0 ? void 0 : _c.line;
-    return {
-        rawLrc: convertToLRC(lyricLines),
-    };
-}
-async function getRecommendSheetTags() {
-    const resp = (await service.get("/api/genre")).data;
-    const data = resp === null || resp === void 0 ? void 0 : resp.map((it) => ({
-        id: it.id,
-        title: it.name,
-    }));
-    return {
-        pinned: data,
-        data: [
-            {
-                title: "风格",
-                data: data,
-            },
-        ],
-    };
-}
-async function getRecommendSheetsByTag(tagItem, page) {
-    var _a, _b;
-    let sheetList;
-    if (!tagItem || !tagItem.id || tagItem.id.length <= 0) {
-        const data = await getNdPlaylists("", "name", page);
-        sheetList =
-            (_a = data === null || data === void 0 ? void 0 : data.map((it) => {
-                return Object.assign(Object.assign({}, formatPlaylistItem(it)), { sheetType: "playlist" });
-            })) !== null && _a !== void 0 ? _a : [];
-    }
-    else {
-        const data = await getNdRelatedAlbumList("", tagItem.id, page, "ASC", "max_year asc,date asc");
-        sheetList = (_b = data === null || data === void 0 ? void 0 : data.map(formatAlbumSheetItem)) !== null && _b !== void 0 ? _b : [];
-    }
-    return {
-        isEnd: sheetList == null ? true : sheetList.length < PAGE_SIZE,
-        data: sheetList,
-    };
-}
-async function getMusicSheetInfo(sheetItem, page) {
-    var _a, _b;
-    let musicList = null;
-    if (sheetItem.sheetType === "playlist") {
-        const data = await getNdPlaylistTracks(sheetItem.id, "ASC", "id");
-        musicList = (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistMusicItem)) !== null && _a !== void 0 ? _a : [];
-    }
-    else if (sheetItem.sheetType === "album") {
-        const data = await getAlbumInfo(sheetItem, page);
-        musicList = (_b = data === null || data === void 0 ? void 0 : data.musicList) !== null && _b !== void 0 ? _b : [];
-    }
-    return {
-        isEnd: musicList == null ? true : musicList.length < PAGE_SIZE,
-        musicList: musicList,
-    };
-}
 async function getArtistAlbums(artistItem, page) {
     var _a;
     const data = await getNdRelatedAlbumList(artistItem.id, "", page, "ASC", "max_year asc,date asc");
     return {
-        isEnd: data == null ? true : data.length < PAGE_SIZE,
+        isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatAlbumItem)) !== null && _a !== void 0 ? _a : [],
     };
 }
 async function getArtistMusics(artistItem, page) {
     var _a;
-    const startIndex = (page - 1) * PAGE_SIZE;
-    const data = (await service.get("/api/song", {
+    const startIndex = (page - 1) * ND_PAGE_SIZE;
+    const data = (await ndService.get("/api/song", {
         params: {
             artist_id: artistItem.id,
             _start: startIndex,
-            _end: startIndex + PAGE_SIZE,
+            _end: startIndex + ND_PAGE_SIZE,
             _order: "ASC",
             _sort: "title",
         },
     })).data;
     return {
-        isEnd: data == null ? true : data.length < PAGE_SIZE,
+        isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
         data: (_a = data === null || data === void 0 ? void 0 : data.map(formatMusicItem)) !== null && _a !== void 0 ? _a : [],
     };
-}
-async function getArtistWorks(artistItem, page, type) {
-    if (type === "album") {
-        return await getArtistAlbums(artistItem, page);
-    }
-    if (type === "music") {
-        return await getArtistMusics(artistItem, page);
-    }
 }
 function formatAlbumSheetItem(it) {
     return {
@@ -693,65 +554,21 @@ async function getAlbumSheetList(type, page, size) {
     const album = await getNdAlbumList(type, page, size);
     return (_a = album === null || album === void 0 ? void 0 : album.map(formatAlbumSheetItem)) !== null && _a !== void 0 ? _a : [];
 }
-async function getTopLists() {
-    var _a, _b, _c, _d, _e, _f;
-    const result = [];
-    const recentList = getAlbumSheetList("recent", 1, 10);
-    const starredList = getAlbumSheetList("starred", 1, 10);
-    const ratedList = getAlbumSheetList("highest", 1, 10);
-    const frequentList = getAlbumSheetList("frequent", 1, 10);
-    const newestList = getAlbumSheetList("newest", 1, 10);
-    const randomList = getAlbumSheetList("random", 1, 10);
-    const datas = await Promise.all([
-        recentList,
-        starredList,
-        ratedList,
-        frequentList,
-        newestList,
-        randomList,
-    ]);
-    if (((_a = datas[0]) === null || _a === void 0 ? void 0 : _a.length) > 0) {
-        result.push({
-            title: "最近播放的专辑",
-            data: datas[0],
-        });
-    }
-    if (((_b = datas[1]) === null || _b === void 0 ? void 0 : _b.length) > 0) {
-        result.push({
-            title: "收藏专辑",
-            data: datas[1],
-        });
-    }
-    if (((_c = datas[2]) === null || _c === void 0 ? void 0 : _c.length) > 0) {
-        result.push({
-            title: "评分最高的专辑",
-            data: datas[2],
-        });
-    }
-    if (((_d = datas[3]) === null || _d === void 0 ? void 0 : _d.length) > 0) {
-        result.push({
-            title: "播放最多的专辑",
-            data: datas[3],
-        });
-    }
-    if (((_e = datas[4]) === null || _e === void 0 ? void 0 : _e.length) > 0) {
-        result.push({
-            title: "最近添加的专辑",
-            data: datas[4],
-        });
-    }
-    if (((_f = datas[5]) === null || _f === void 0 ? void 0 : _f.length) > 0) {
-        result.push({
-            title: "随机专辑",
-            data: datas[5],
-        });
-    }
-    return result;
-}
-async function getTopListDetail(topListItem, page) {
-    if (topListItem.sheetType === "album") {
-        return await getAlbumInfo(topListItem, page);
-    }
+async function getNdAlbumSheetInfo(albumItem, page) {
+    var _a, _b, _c;
+    const albumRequest = getNdAlbumInfo(albumItem.id);
+    const songsRequest = getNdAlbumSongList(albumItem.id, page);
+    const datas = await Promise.all([albumRequest, songsRequest]);
+    const album = datas[0];
+    const song = datas[1];
+    return {
+        isEnd: song == null ? true : song.length < ND_PAGE_SIZE,
+        musicList: (_a = song === null || song === void 0 ? void 0 : song.map(formatMusicItem)) !== null && _a !== void 0 ? _a : [],
+        sheetItem: {
+            worksNums: (_b = album === null || album === void 0 ? void 0 : album.songCount) !== null && _b !== void 0 ? _b : 0,
+            playCount: (_c = album === null || album === void 0 ? void 0 : album.playCount) !== null && _c !== void 0 ? _c : 0,
+        },
+    };
 }
 module.exports = {
     platform: "Navidrome",
@@ -775,15 +592,186 @@ module.exports = {
         },
     ],
     supportedSearchType: ["music", "album", "artist", "sheet"],
-    search,
-    getMediaSource,
-    getMusicInfo,
-    getAlbumInfo,
-    getLyric,
-    getRecommendSheetTags,
-    getRecommendSheetsByTag,
-    getMusicSheetInfo,
-    getArtistWorks,
-    getTopLists,
-    getTopListDetail,
+    async search(query, page, type) {
+        if (type === "music") {
+            return await searchMusic(query, page);
+        }
+        if (type === "album") {
+            return await searchAlbum(query, page);
+        }
+        if (type === "artist") {
+            return await searchArtist(query, page);
+        }
+        if (type === "sheet") {
+            return await searchSheet(query, page);
+        }
+    },
+    async getMediaSource(musicItem, quality) {
+        scrobble(musicItem.id);
+        quality = "super";
+        let maxBitRate, format;
+        switch (quality) {
+            case "low":
+                maxBitRate = "128";
+                format = "mp3";
+                break;
+            case "standard":
+                maxBitRate = "256";
+                format = "mp3";
+                break;
+            case "high":
+                maxBitRate = "320";
+                format = "aac";
+                break;
+            default:
+                maxBitRate = "0";
+                format = "raw";
+                break;
+        }
+        const urlObj = getSubsonicURL("/rest/stream");
+        urlObj.searchParams.append("id", musicItem.id);
+        urlObj.searchParams.append("maxBitRate", maxBitRate);
+        urlObj.searchParams.append("format", format);
+        return {
+            url: urlObj.toString(),
+        };
+    },
+    async getMusicInfo(musicItem) {
+        const data = (await ndService.get(`/api/song/${musicItem.id}`)).data;
+        return formatMusicItem(data);
+    },
+    async getAlbumInfo(albumItem, page) {
+        return await getNdAlbumSheetInfo(albumItem, page);
+    },
+    async getLyric(musicItem) {
+        var _a, _b, _c;
+        const data = (await ndService.get("/rest/getLyricsBySongId", {
+            params: {
+                id: musicItem.id,
+            },
+        })).data;
+        const lyricLines = (_c = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.lyricsList) === null || _b === void 0 ? void 0 : _b.structuredLyrics[0]) === null || _c === void 0 ? void 0 : _c.line;
+        return {
+            rawLrc: convertToLRC(lyricLines),
+        };
+    },
+    async getRecommendSheetTags() {
+        const resp = (await ndService.get("/api/genre")).data;
+        const data = resp === null || resp === void 0 ? void 0 : resp.map((it) => ({
+            id: it.id,
+            title: it.name,
+        }));
+        return {
+            pinned: data,
+            data: [
+                {
+                    title: "风格",
+                    data: data,
+                },
+            ],
+        };
+    },
+    async getRecommendSheetsByTag(tagItem, page) {
+        var _a, _b;
+        let sheetList;
+        if (!tagItem || !tagItem.id || tagItem.id.length <= 0) {
+            const data = await getNdPlaylists("", "name", page);
+            sheetList =
+                (_a = data === null || data === void 0 ? void 0 : data.map((it) => {
+                    return Object.assign(Object.assign({}, formatPlaylistItem(it)), { sheetType: "playlist" });
+                })) !== null && _a !== void 0 ? _a : [];
+        }
+        else {
+            const data = await getNdRelatedAlbumList("", tagItem.id, page, "ASC", "max_year asc,date asc");
+            sheetList = (_b = data === null || data === void 0 ? void 0 : data.map(formatAlbumSheetItem)) !== null && _b !== void 0 ? _b : [];
+        }
+        return {
+            isEnd: sheetList == null ? true : sheetList.length < ND_PAGE_SIZE,
+            data: sheetList,
+        };
+    },
+    async getMusicSheetInfo(sheetItem, page) {
+        var _a, _b;
+        let musicList = null;
+        if (sheetItem.sheetType === "playlist") {
+            const data = await getNdPlaylistTracks(sheetItem.id, "ASC", "id");
+            musicList = (_a = data === null || data === void 0 ? void 0 : data.map(formatPlaylistMusicItem)) !== null && _a !== void 0 ? _a : [];
+        }
+        else if (sheetItem.sheetType === "album") {
+            const data = await getNdAlbumSheetInfo(sheetItem, page);
+            musicList = (_b = data === null || data === void 0 ? void 0 : data.musicList) !== null && _b !== void 0 ? _b : [];
+        }
+        return {
+            isEnd: musicList == null ? true : musicList.length < ND_PAGE_SIZE,
+            musicList: musicList,
+        };
+    },
+    async getArtistWorks(artistItem, page, type) {
+        if (type === "album") {
+            return await getArtistAlbums(artistItem, page);
+        }
+        if (type === "music") {
+            return await getArtistMusics(artistItem, page);
+        }
+    },
+    async getTopLists() {
+        var _a, _b, _c, _d, _e, _f;
+        const result = [];
+        const recentList = getAlbumSheetList("recent", 1, 10);
+        const starredList = getAlbumSheetList("starred", 1, 10);
+        const ratedList = getAlbumSheetList("highest", 1, 10);
+        const frequentList = getAlbumSheetList("frequent", 1, 10);
+        const newestList = getAlbumSheetList("newest", 1, 10);
+        const randomList = getAlbumSheetList("random", 1, 10);
+        const datas = await Promise.all([
+            recentList,
+            starredList,
+            ratedList,
+            frequentList,
+            newestList,
+            randomList,
+        ]);
+        if (((_a = datas[0]) === null || _a === void 0 ? void 0 : _a.length) > 0) {
+            result.push({
+                title: "最近播放的专辑",
+                data: datas[0],
+            });
+        }
+        if (((_b = datas[1]) === null || _b === void 0 ? void 0 : _b.length) > 0) {
+            result.push({
+                title: "收藏专辑",
+                data: datas[1],
+            });
+        }
+        if (((_c = datas[2]) === null || _c === void 0 ? void 0 : _c.length) > 0) {
+            result.push({
+                title: "评分最高的专辑",
+                data: datas[2],
+            });
+        }
+        if (((_d = datas[3]) === null || _d === void 0 ? void 0 : _d.length) > 0) {
+            result.push({
+                title: "播放最多的专辑",
+                data: datas[3],
+            });
+        }
+        if (((_e = datas[4]) === null || _e === void 0 ? void 0 : _e.length) > 0) {
+            result.push({
+                title: "最近添加的专辑",
+                data: datas[4],
+            });
+        }
+        if (((_f = datas[5]) === null || _f === void 0 ? void 0 : _f.length) > 0) {
+            result.push({
+                title: "随机专辑",
+                data: datas[5],
+            });
+        }
+        return result;
+    },
+    async getTopListDetail(topListItem, page) {
+        if (topListItem.sheetType === "album") {
+            return await getNdAlbumSheetInfo(topListItem, page);
+        }
+    },
 };
