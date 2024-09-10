@@ -5,6 +5,18 @@ const rimraf = require('rimraf');
 const basePath = path.resolve(__dirname, '..');
 const distPath = path.resolve(__dirname, '../dist');
 
+/// <reference types="../types/global" />
+global.env = {
+    getUserVariables: () => {
+      return {
+        url: "",
+        username: "",
+        password: "",
+      };
+    },
+    debug: true,
+};
+
 async function run() {
     console.log('生成json文件...');
 
@@ -29,19 +41,13 @@ async function run() {
         if (stat.isDirectory()) {
             const targetPluginPath = path.resolve(filePath, 'index.js');
             await fs.stat(targetPluginPath);
-            const origin = await fs.readFile(targetPluginPath, 'utf-8');
-            const mexportsMatch = origin.match(/module.exports\s*=\s*([\s\S]*)$/);
+            const jsItem = require(targetPluginPath);
 
-            if (mexportsMatch) {
-                const mexports = mexportsMatch[1];
-                const platform = mexports.match(/platform:\s*['"`](.*)['"`]/)[1];
-                const version = mexports.match(/version:\s*['"`](.*)['"`]/)[1];
-                const srcUrl = mexports.match(/srcUrl:\s*['"`](.*)['"`]/)[1];
-
+            if (jsItem && jsItem.platform) {
                 output.plugins.push({
-                    name: platform,
-                    url: srcUrl,
-                    version: version
+                    name: jsItem.platform,
+                    url: jsItem.srcUrl,
+                    version: jsItem.version,
                 });
             }
         }
