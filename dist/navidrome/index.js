@@ -757,7 +757,7 @@ module.exports = {
     version: "0.0.5",
     author: "猪小乐",
     appVersion: ">0.1.0-alpha.0",
-    srcUrl: "https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js",
+    srcUrl: "https://registry.npmmirror.com/musicfree-plugins/latest/files/navidrome/index.js",
     cacheControl: "no-cache",
     userVariables: [
         {
