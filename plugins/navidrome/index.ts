@@ -4,6 +4,7 @@ const CookieManager = !env?.debug
   ? require("@react-native-cookies/cookies")
   : null;
 
+const ND_PLUGIN_VERSION = "0.0.5";
 const PAGE_SIZE = 25;
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
@@ -954,7 +955,7 @@ type NdAuthInfo = {
 
 module.exports = {
   platform: "Navidrome",
-  version: "0.0.5",
+  version: ND_PLUGIN_VERSION,
   author: "猪小乐",
   appVersion: ">0.1.0-alpha.0",
   srcUrl:
