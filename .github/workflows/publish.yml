@@ -2,8 +2,8 @@ name: 发布至npm
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '*'
   workflow_dispatch:
 
 jobs:
