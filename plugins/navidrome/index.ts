@@ -778,9 +778,6 @@ module.exports = {
   },
   // 获取歌曲播放流
   async getMediaSource(musicItem, quality) {
-    // 播放记录
-    scrobble(musicItem.id);
-
     // 强制不转码，转码后播放器不显示时长
     quality = "super";
 
@@ -809,6 +806,9 @@ module.exports = {
     urlObj.searchParams.append("id", musicItem.id);
     urlObj.searchParams.append("maxBitRate", maxBitRate);
     urlObj.searchParams.append("format", format);
+
+    // 播放记录
+    scrobble(musicItem.id);
 
     return {
       url: urlObj.toString(),

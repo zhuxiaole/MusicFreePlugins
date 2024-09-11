@@ -597,9 +597,6 @@ module.exports = {
   supportedSearchType: ["music"],
   // 获取歌曲播放流
   async getMediaSource(musicItem, quality) {
-    // 播放记录
-    // scrobble(musicItem.id);
-
     const baseUrl = getConfigEmbyBaseUrl();
     const deviceId = await checkAndGetEmbyDeviceId(baseUrl);
     if (!isEmbyAuthInfoValid(await getStoredEmbyAuthInfo(baseUrl))) {
@@ -636,6 +633,10 @@ module.exports = {
     return {
       url: urlObj.toString(),
     };
+  },
+  // 获取歌曲详情
+  async getMusicInfo(musicItem) {
+    return musicItem;
   },
   // 获取推荐歌单标签
   async getRecommendSheetTags() {

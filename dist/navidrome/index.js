@@ -625,7 +625,6 @@ module.exports = {
         }
     },
     async getMediaSource(musicItem, quality) {
-        scrobble(musicItem.id);
         quality = "super";
         let maxBitRate, format;
         switch (quality) {
@@ -650,6 +649,7 @@ module.exports = {
         urlObj.searchParams.append("id", musicItem.id);
         urlObj.searchParams.append("maxBitRate", maxBitRate);
         urlObj.searchParams.append("format", format);
+        scrobble(musicItem.id);
         return {
             url: urlObj.toString(),
         };

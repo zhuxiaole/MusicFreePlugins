@@ -584,6 +584,9 @@ module.exports = {
             url: urlObj.toString(),
         };
     },
+    async getMusicInfo(musicItem) {
+        return musicItem;
+    },
     async getRecommendSheetTags() {
         var _a, _b;
         const musicLibsRequest = getEmbyUserMusicLibraries();
