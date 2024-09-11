@@ -411,6 +411,7 @@ function getEmbyAlbumsByGenre(genreId, page): Promise<any> {
         IncludeItemTypes: "MusicAlbum",
         Recursive: true,
         GenreIds: genreId,
+        EnableUserData: true,
         EnableImageTypes: "Primary",
         Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
       },
@@ -430,6 +431,7 @@ function getEmbyAlbumsByParent(parentId, page): Promise<any> {
         IncludeItemTypes: "MusicAlbum",
         Recursive: true,
         ParentId: parentId,
+        EnableUserData: true,
         EnableImageTypes: "Primary",
         Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
       },
@@ -444,10 +446,7 @@ function formatEmbyPlaylistItem(playlistItem, username) {
     id: playlistItem.Id,
     artist: username,
     title: playlistItem.Name,
-    artwork: getEmbyCoverArtUrl(
-      playlistItem.Id,
-      playlistItem.ImageTags?.Primary
-    ),
+    artwork: getEmbyCoverArtUrl(playlistItem),
     playCount: playlistItem.UserData?.PlayCount ?? 0,
     createTime: playlistItem.DateCreated,
     description: playlistItem.Overview ?? "",
@@ -459,17 +458,24 @@ function formatEmbyAlbumItem(playlistItem) {
     id: playlistItem.Id,
     artist: playlistItem.AlbumArtist,
     title: playlistItem.Name,
-    artwork: getEmbyCoverArtUrl(
-      playlistItem.PrimaryImageItemId,
-      playlistItem.PrimaryImageTag
-    ),
+    artwork: getEmbyCoverArtUrl(playlistItem),
     playCount: playlistItem.UserData?.PlayCount ?? 0,
     createTime: playlistItem.DateCreated,
     description: playlistItem.Overview ?? "",
   };
 }
 
-function getEmbyCoverArtUrl(imgId, imgTag) {
+function getEmbyCoverArtUrl(item) {
+  let imgId: string, imgTag: string;
+
+  if (item.ImageTags?.Primary?.length > 0) {
+    imgId = item.Id;
+    imgTag = item.ImageTags.Primary;
+  } else {
+    imgId = item.PrimaryImageItemId ?? "";
+    imgTag = item.PrimaryImageTag ?? "";
+  }
+
   const urlObj = new URL(getConfigEmbyBaseUrl());
   urlObj.pathname = `/emby/Items/${imgId}/Images/Primary`;
   urlObj.searchParams.append("tag", imgTag);

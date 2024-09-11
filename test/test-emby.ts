@@ -18,14 +18,14 @@ const emby = require("../plugins/emby/index");
 //   console.log(tags);
 // });
 
-emby.getRecommendSheetsByTag(null, 1).then((data) => {
-  console.log(data);
-});
+// emby.getRecommendSheetsByTag(null, 1).then((data) => {
+//   console.log(data);
+// });
 
 // emby.getRecommendSheetsByTag({ id: 111638, type: "genre" }, 1).then((data) => {
 //   console.log(data);
 // });
 
-// emby.getRecommendSheetsByTag({ id: 111588 }, 1).then((data) => {
-//   console.log(data);
-// });
+emby.getRecommendSheetsByTag({ id: 111588 }, 1).then((data) => {
+  console.log(data);
+});

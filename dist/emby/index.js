@@ -452,6 +452,7 @@ function getEmbyAlbumsByGenre(genreId, page) {
             IncludeItemTypes: "MusicAlbum",
             Recursive: true,
             GenreIds: genreId,
+            EnableUserData: true,
             EnableImageTypes: "Primary",
             Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
         },
@@ -470,6 +471,7 @@ function getEmbyAlbumsByParent(parentId, page) {
             IncludeItemTypes: "MusicAlbum",
             Recursive: true,
             ParentId: parentId,
+            EnableUserData: true,
             EnableImageTypes: "Primary",
             Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
         },
@@ -480,15 +482,15 @@ function getEmbyAlbumsByParent(parentId, page) {
     });
 }
 function formatEmbyPlaylistItem(playlistItem, username) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     return {
         id: playlistItem.Id,
         artist: username,
         title: playlistItem.Name,
-        artwork: getEmbyCoverArtUrl(playlistItem.Id, (_a = playlistItem.ImageTags) === null || _a === void 0 ? void 0 : _a.Primary),
-        playCount: (_c = (_b = playlistItem.UserData) === null || _b === void 0 ? void 0 : _b.PlayCount) !== null && _c !== void 0 ? _c : 0,
+        artwork: getEmbyCoverArtUrl(playlistItem),
+        playCount: (_b = (_a = playlistItem.UserData) === null || _a === void 0 ? void 0 : _a.PlayCount) !== null && _b !== void 0 ? _b : 0,
         createTime: playlistItem.DateCreated,
-        description: (_d = playlistItem.Overview) !== null && _d !== void 0 ? _d : "",
+        description: (_c = playlistItem.Overview) !== null && _c !== void 0 ? _c : "",
     };
 }
 function formatEmbyAlbumItem(playlistItem) {
@@ -497,13 +499,23 @@ function formatEmbyAlbumItem(playlistItem) {
         id: playlistItem.Id,
         artist: playlistItem.AlbumArtist,
         title: playlistItem.Name,
-        artwork: getEmbyCoverArtUrl(playlistItem.PrimaryImageItemId, playlistItem.PrimaryImageTag),
+        artwork: getEmbyCoverArtUrl(playlistItem),
         playCount: (_b = (_a = playlistItem.UserData) === null || _a === void 0 ? void 0 : _a.PlayCount) !== null && _b !== void 0 ? _b : 0,
         createTime: playlistItem.DateCreated,
         description: (_c = playlistItem.Overview) !== null && _c !== void 0 ? _c : "",
     };
 }
-function getEmbyCoverArtUrl(imgId, imgTag) {
+function getEmbyCoverArtUrl(item) {
+    var _a, _b, _c, _d;
+    let imgId, imgTag;
+    if (((_b = (_a = item.ImageTags) === null || _a === void 0 ? void 0 : _a.Primary) === null || _b === void 0 ? void 0 : _b.length) > 0) {
+        imgId = item.Id;
+        imgTag = item.ImageTags.Primary;
+    }
+    else {
+        imgId = (_c = item.PrimaryImageItemId) !== null && _c !== void 0 ? _c : "";
+        imgTag = (_d = item.PrimaryImageTag) !== null && _d !== void 0 ? _d : "";
+    }
     const urlObj = new URL(getConfigEmbyBaseUrl());
     urlObj.pathname = `/emby/Items/${imgId}/Images/Primary`;
     urlObj.searchParams.append("tag", imgTag);
