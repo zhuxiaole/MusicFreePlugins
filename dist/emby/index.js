@@ -481,6 +481,24 @@ function getEmbyAlbumsByParent(parentId, page) {
         return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
     });
 }
+function getEmbyMusicListByParent(parentId, page) {
+    return embyService
+        .get("/emby/UserItems", {
+        params: {
+            StartIndex: (page - 1) * EMBY_PAGE_SIZE,
+            Limit: EMBY_PAGE_SIZE,
+            ParentId: parentId,
+            MediaTypes: "Audio",
+            EnableUserData: true,
+            EnableImageTypes: "Primary",
+            Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
+        },
+    })
+        .then((resp) => {
+        var _a;
+        return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
+    });
+}
 function formatEmbyPlaylistItem(playlistItem, username) {
     var _a, _b, _c;
     return {
@@ -503,6 +521,18 @@ function formatEmbyAlbumItem(playlistItem) {
         playCount: (_b = (_a = playlistItem.UserData) === null || _a === void 0 ? void 0 : _a.PlayCount) !== null && _b !== void 0 ? _b : 0,
         createTime: playlistItem.DateCreated,
         description: (_c = playlistItem.Overview) !== null && _c !== void 0 ? _c : "",
+    };
+}
+function formatEmbyMusicItem(musicItem) {
+    var _a, _b;
+    return {
+        id: musicItem.Id,
+        title: musicItem.Name,
+        artist: (_b = (_a = musicItem.Artists) === null || _a === void 0 ? void 0 : _a.join("&")) !== null && _b !== void 0 ? _b : "",
+        artwork: getEmbyCoverArtUrl(musicItem),
+        album: musicItem.Album,
+        albumid: musicItem.AlbumId,
+        duration: musicItem.RunTimeTicks / 10000000,
     };
 }
 function getEmbyCoverArtUrl(item) {
@@ -579,25 +609,31 @@ module.exports = {
         if (!tagItem || tagItem.id.length <= 0) {
             const username = getConfigEmbyUsername();
             sheets = await getEmbyUserMusicPlaylist(page);
-            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map((it) => {
-                return Object.assign(Object.assign({}, formatEmbyPlaylistItem(it, username)), { sheetType: "playlist" });
-            });
+            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map((it) => formatEmbyPlaylistItem(it, username));
         }
         else if (tagItem.type === "genre") {
             sheets = await getEmbyAlbumsByGenre(tagItem.id, page);
-            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map((it) => {
-                return Object.assign(Object.assign({}, formatEmbyAlbumItem(it)), { sheetType: "album" });
-            });
+            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map(formatEmbyAlbumItem);
         }
         else {
             sheets = await getEmbyAlbumsByParent(tagItem.id, page);
-            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map((it) => {
-                return Object.assign(Object.assign({}, formatEmbyAlbumItem(it)), { sheetType: "album" });
-            });
+            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map(formatEmbyAlbumItem);
         }
         return {
             isEnd: sheets == null ? true : sheets.length < EMBY_PAGE_SIZE,
             data: sheets,
+        };
+    },
+    async getMusicSheetInfo(sheetItem, page) {
+        var _a, _b;
+        const sheetInfo = await getEmbyMusicListByParent(sheetItem.id, page);
+        const musicList = (_a = sheetInfo.Items) === null || _a === void 0 ? void 0 : _a.map(formatEmbyMusicItem);
+        return {
+            isEnd: musicList == null ? true : musicList.length < EMBY_PAGE_SIZE,
+            musicList: musicList,
+            sheetItem: {
+                worksNums: (_b = sheetInfo.TotalRecordCount) !== null && _b !== void 0 ? _b : 0,
+            },
         };
     },
 };

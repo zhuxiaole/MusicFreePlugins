@@ -441,6 +441,25 @@ function getEmbyAlbumsByParent(parentId, page): Promise<any> {
     });
 }
 
+// Emby 根据 parentId 获取歌曲列表
+function getEmbyMusicListByParent(parentId, page): Promise<any> {
+  return embyService
+    .get("/emby/UserItems", {
+      params: {
+        StartIndex: (page - 1) * EMBY_PAGE_SIZE,
+        Limit: EMBY_PAGE_SIZE,
+        ParentId: parentId,
+        MediaTypes: "Audio",
+        EnableUserData: true,
+        EnableImageTypes: "Primary",
+        Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
+      },
+    })
+    .then((resp) => {
+      return Promise.resolve(resp.data ?? {});
+    });
+}
+
 function formatEmbyPlaylistItem(playlistItem, username) {
   return {
     id: playlistItem.Id,
@@ -462,6 +481,18 @@ function formatEmbyAlbumItem(playlistItem) {
     playCount: playlistItem.UserData?.PlayCount ?? 0,
     createTime: playlistItem.DateCreated,
     description: playlistItem.Overview ?? "",
+  };
+}
+
+function formatEmbyMusicItem(musicItem) {
+  return {
+    id: musicItem.Id,
+    title: musicItem.Name,
+    artist: musicItem.Artists?.join("&") ?? "",
+    artwork: getEmbyCoverArtUrl(musicItem),
+    album: musicItem.Album,
+    albumid: musicItem.AlbumId,
+    duration: musicItem.RunTimeTicks / 10000000,
   };
 }
 
@@ -552,33 +583,31 @@ module.exports = {
     if (!tagItem || tagItem.id.length <= 0) {
       const username = getConfigEmbyUsername();
       sheets = await getEmbyUserMusicPlaylist(page);
-      sheets = sheets?.map((it) => {
-        return {
-          ...formatEmbyPlaylistItem(it, username),
-          sheetType: "playlist",
-        };
-      });
+      sheets = sheets?.map((it) => formatEmbyPlaylistItem(it, username));
     } else if (tagItem.type === "genre") {
       sheets = await getEmbyAlbumsByGenre(tagItem.id, page);
-      sheets = sheets?.map((it) => {
-        return {
-          ...formatEmbyAlbumItem(it),
-          sheetType: "album",
-        };
-      });
+      sheets = sheets?.map(formatEmbyAlbumItem);
     } else {
       sheets = await getEmbyAlbumsByParent(tagItem.id, page);
-      sheets = sheets?.map((it) => {
-        return {
-          ...formatEmbyAlbumItem(it),
-          sheetType: "album",
-        };
-      });
+      sheets = sheets?.map(formatEmbyAlbumItem);
     }
 
     return {
       isEnd: sheets == null ? true : sheets.length < EMBY_PAGE_SIZE,
       data: sheets,
+    };
+  },
+  // 获取歌单详情
+  async getMusicSheetInfo(sheetItem, page) {
+    const sheetInfo = await getEmbyMusicListByParent(sheetItem.id, page);
+    const musicList = sheetInfo.Items?.map(formatEmbyMusicItem);
+
+    return {
+      isEnd: musicList == null ? true : musicList.length < EMBY_PAGE_SIZE,
+      musicList: musicList,
+      sheetItem: {
+        worksNums: sheetInfo.TotalRecordCount ?? 0,
+      },
     };
   },
 };

@@ -26,6 +26,17 @@ const emby = require("../plugins/emby/index");
 //   console.log(data);
 // });
 
-emby.getRecommendSheetsByTag({ id: 111588 }, 1).then((data) => {
-  console.log(data);
-});
+// emby.getRecommendSheetsByTag({ id: 111588 }, 1).then((data) => {
+//   console.log(data);
+// });
+
+emby
+  .getMusicSheetInfo(
+    {
+      id: "111712",
+    },
+    1
+  )
+  .then((data) => {
+    console.log(data);
+  });
