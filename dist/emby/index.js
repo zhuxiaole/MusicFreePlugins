@@ -195,12 +195,16 @@ function getEmbyUserVariables() {
     return userVariables;
 }
 function getConfigEmbyBaseUrl() {
-    var _a;
-    return (_a = getEmbyUserVariables()) === null || _a === void 0 ? void 0 : _a.url;
+    var _a, _b, _c;
+    return (_c = (_b = (_a = getEmbyUserVariables()) === null || _a === void 0 ? void 0 : _a.url) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : "";
 }
 function getConfigEmbyUsername() {
-    var _a;
-    return (_a = getEmbyUserVariables()) === null || _a === void 0 ? void 0 : _a.username;
+    var _a, _b, _c;
+    return (_c = (_b = (_a = getEmbyUserVariables()) === null || _a === void 0 ? void 0 : _a.username) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : "";
+}
+function getConfigEmbyPassword() {
+    var _a, _b, _c;
+    return (_c = (_b = (_a = getEmbyUserVariables()) === null || _a === void 0 ? void 0 : _a.password) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : "";
 }
 function isEmbyAuthInfoValid(info) {
     return (info &&
@@ -326,7 +330,8 @@ function requestEmbyToken() {
     if (embySingletonTokenRequest !== null) {
         return embySingletonTokenRequest;
     }
-    let { _, username, password } = getEmbyUserVariables();
+    const username = getConfigEmbyUsername();
+    const password = getConfigEmbyPassword();
     embySingletonTokenRequest = new Promise(async function (resolve, reject) {
         const baseUrl = getConfigEmbyBaseUrl();
         await embyService

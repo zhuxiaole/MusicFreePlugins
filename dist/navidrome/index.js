@@ -115,12 +115,16 @@ function getNdUserVariables() {
     return userVariables;
 }
 function getConfigNdBaseUrl() {
-    var _a;
-    return (_a = getNdUserVariables()) === null || _a === void 0 ? void 0 : _a.url;
+    var _a, _b, _c;
+    return (_c = (_b = (_a = getNdUserVariables()) === null || _a === void 0 ? void 0 : _a.url) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : "";
 }
 function getConfigNdUsername() {
-    var _a;
-    return (_a = getNdUserVariables()) === null || _a === void 0 ? void 0 : _a.username;
+    var _a, _b, _c;
+    return (_c = (_b = (_a = getNdUserVariables()) === null || _a === void 0 ? void 0 : _a.username) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : "";
+}
+function getConfigNdPassword() {
+    var _a, _b, _c;
+    return (_c = (_b = (_a = getNdUserVariables()) === null || _a === void 0 ? void 0 : _a.password) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : "";
 }
 function isSubsonicAuthInfoValid(info) {
     return (info &&
@@ -219,7 +223,8 @@ function requestNdToken() {
     if (ndSingletonTokenRequest !== null) {
         return ndSingletonTokenRequest;
     }
-    let { _, username, password } = getNdUserVariables();
+    const username = getConfigNdUsername();
+    const password = getConfigNdPassword();
     ndSingletonTokenRequest = new Promise(async function (resolve, reject) {
         const baseUrl = getConfigNdBaseUrl();
         await ndService

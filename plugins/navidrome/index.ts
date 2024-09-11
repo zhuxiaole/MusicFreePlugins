@@ -120,15 +120,15 @@ function getNdUserVariables() {
 }
 
 function getConfigNdBaseUrl() {
-  return getNdUserVariables()?.url;
+  return getNdUserVariables()?.url?.trim() ?? "";
 }
 
 function getConfigNdUsername() {
-  return getNdUserVariables()?.username;
+  return getNdUserVariables()?.username?.trim() ?? "";
 }
 
 function getConfigNdPassword() {
-  return getNdUserVariables()?.password;
+  return getNdUserVariables()?.password?.trim() ?? "";
 }
 
 function isSubsonicAuthInfoValid(info) {
@@ -285,7 +285,8 @@ function requestNdToken(): Promise<any> {
     return ndSingletonTokenRequest;
   }
 
-  let { _, username, password } = getNdUserVariables();
+  const username = getConfigNdUsername();
+  const password = getConfigNdPassword();
 
   // 设置 ndSingletonTokenRequest 为一个 Promise 对象 , 处理刷新 token 请求
   ndSingletonTokenRequest = new Promise<any>(async function (resolve, reject) {

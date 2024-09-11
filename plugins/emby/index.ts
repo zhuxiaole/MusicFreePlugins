@@ -146,15 +146,15 @@ function getEmbyUserVariables() {
 }
 
 function getConfigEmbyBaseUrl() {
-  return getEmbyUserVariables()?.url;
+  return getEmbyUserVariables()?.url?.trim() ?? "";
 }
 
 function getConfigEmbyUsername() {
-  return getEmbyUserVariables()?.username;
+  return getEmbyUserVariables()?.username?.trim() ?? "";
 }
 
 function getConfigEmbyPassword() {
-  return getEmbyUserVariables()?.password;
+  return getEmbyUserVariables()?.password?.trim() ?? "";
 }
 
 function isEmbyAuthInfoValid(info: EmbyAuthInfo) {
@@ -334,7 +334,8 @@ function requestEmbyToken(): Promise<any> {
     return embySingletonTokenRequest;
   }
 
-  let { _, username, password } = getEmbyUserVariables();
+  const username = getConfigEmbyUsername();
+  const password = getConfigEmbyPassword();
 
   // 设置 embySingletonTokenRequest 为一个 Promise 对象 , 处理刷新 token 请求
   embySingletonTokenRequest = new Promise<any>(async function (
