@@ -323,6 +323,11 @@ embyService.interceptors.request.use(async function (config) {
                 if (config.url && config.url.startsWith("/emby/UserItems")) {
                     config.url = `/emby/Users/${authInfo.embyUserId}/Items`;
                 }
+                if (config.url && config.url.startsWith("/emby/UserGetItem")) {
+                    config.url = `/emby/Users/${authInfo.embyUserId}/Items/${config.url
+                        .split("/")
+                        .pop()}`;
+                }
             }
         }
         config.headers["Authorization"] = authHeader;
@@ -499,6 +504,12 @@ function getEmbyMusicListByParent(parentId, page) {
         return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
     });
 }
+function getEmbyMusicInfo(musicId) {
+    return embyService.get(`/emby/UserGetItem/${musicId}`).then((resp) => {
+        var _a;
+        return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
+    });
+}
 function formatEmbyPlaylistItem(playlistItem, username) {
     var _a, _b, _c;
     return {
@@ -576,6 +587,11 @@ module.exports = {
         },
     ],
     supportedSearchType: ["music"],
+    async getMusicInfo(musicItem) {
+        var _a, _b, _c;
+        const musicInfo = await getEmbyMusicInfo(musicItem.id);
+        return Object.assign(Object.assign({}, formatEmbyMusicItem(musicInfo)), { rawLrc: (_c = (_b = (_a = musicInfo.MediaStreams) === null || _a === void 0 ? void 0 : _a.filter((it) => it.Codec === "text")) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.Extradata });
+    },
     async getRecommendSheetTags() {
         var _a, _b;
         const musicLibsRequest = getEmbyUserMusicLibraries();
@@ -625,14 +641,14 @@ module.exports = {
         };
     },
     async getMusicSheetInfo(sheetItem, page) {
-        var _a, _b;
+        var _a, _b, _c;
         const sheetInfo = await getEmbyMusicListByParent(sheetItem.id, page);
         const musicList = (_a = sheetInfo.Items) === null || _a === void 0 ? void 0 : _a.map(formatEmbyMusicItem);
         return {
-            isEnd: musicList == null ? true : musicList.length < EMBY_PAGE_SIZE,
+            isEnd: (_b = musicList === null || musicList === void 0 ? void 0 : musicList.length) !== null && _b !== void 0 ? _b : 0 < EMBY_PAGE_SIZE,
             musicList: musicList,
             sheetItem: {
-                worksNums: (_b = sheetInfo.TotalRecordCount) !== null && _b !== void 0 ? _b : 0,
+                worksNums: (_c = sheetInfo.TotalRecordCount) !== null && _c !== void 0 ? _c : 0,
             },
         };
     },

@@ -30,13 +30,21 @@ const emby = require("../plugins/emby/index");
 //   console.log(data);
 // });
 
+// emby
+//   .getMusicSheetInfo(
+//     {
+//       id: "111712",
+//     },
+//     1
+//   )
+//   .then((data) => {
+//     console.log(data);
+//   });
+
 emby
-  .getMusicSheetInfo(
-    {
-      id: "111712",
-    },
-    1
-  )
+  .getMusicInfo({
+    id: "111649",
+  })
   .then((data) => {
     console.log(data);
   });

@@ -243,6 +243,13 @@ embyService.interceptors.request.use(
           if (config.url && config.url.startsWith("/emby/UserItems")) {
             config.url = `/emby/Users/${authInfo.embyUserId}/Items`;
           }
+
+          // /emby/UserGetItem 设置 userId
+          if (config.url && config.url.startsWith("/emby/UserGetItem")) {
+            config.url = `/emby/Users/${authInfo.embyUserId}/Items/${config.url
+              .split("/")
+              .pop()}`;
+          }
         }
       }
 
@@ -460,6 +467,13 @@ function getEmbyMusicListByParent(parentId, page): Promise<any> {
     });
 }
 
+function getEmbyMusicInfo(musicId): Promise<any> {
+  // 会经过拦截器重新拼接url
+  return embyService.get(`/emby/UserGetItem/${musicId}`).then((resp) => {
+    return Promise.resolve(resp.data ?? {});
+  });
+}
+
 function formatEmbyPlaylistItem(playlistItem, username) {
   return {
     id: playlistItem.Id,
@@ -546,6 +560,15 @@ module.exports = {
     },
   ],
   supportedSearchType: ["music"],
+  // 获取歌曲详情
+  async getMusicInfo(musicItem) {
+    const musicInfo = await getEmbyMusicInfo(musicItem.id);
+    return {
+      ...formatEmbyMusicItem(musicInfo),
+      rawLrc: musicInfo.MediaStreams?.filter((it) => it.Codec === "text")?.[0]
+        ?.Extradata,
+    };
+  },
   // 获取推荐歌单标签
   async getRecommendSheetTags() {
     const musicLibsRequest = getEmbyUserMusicLibraries();
@@ -603,7 +626,7 @@ module.exports = {
     const musicList = sheetInfo.Items?.map(formatEmbyMusicItem);
 
     return {
-      isEnd: musicList == null ? true : musicList.length < EMBY_PAGE_SIZE,
+      isEnd: musicList?.length ?? 0 < EMBY_PAGE_SIZE,
       musicList: musicList,
       sheetItem: {
         worksNums: sheetInfo.TotalRecordCount ?? 0,
