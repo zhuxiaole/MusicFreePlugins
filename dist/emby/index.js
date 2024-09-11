@@ -1,122 +1,59 @@
 'use strict';
 
-const toHex = [];
-for (let i = 0; i < 256; ++i) {
-    toHex[i] = (i + 0x100).toString(16).substring(1);
+let _byteToHex = [];
+for (var i = 0; i < 256; i++) {
+    _byteToHex[i] = (i + 0x100).toString(16).substring(1);
 }
-class Guid {
-    constructor(str) {
-        this.DASH = "-";
-        this.DASH_REGEXP = /-/g;
-        this.contentStr = str;
-        this.contentInt = this.getNumberFromGuidString();
-        if (!this.isValid()) {
-            this.contentStr = Guid.emptyStr;
-            this.contentInt = -1;
+const byteToHex = _byteToHex;
+
+const unparse = (buf, offset) => {
+    let i = 0;
+    let bth = byteToHex;
+    return (bth[buf[i++]] +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        "-" +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        "-" +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        "-" +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        "-" +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        bth[buf[i++]] +
+        bth[buf[i++]]);
+};
+
+const min = 0;
+const max = 256;
+const RANDOM_LENGTH = 16;
+const rng = () => {
+    let result = new Array(RANDOM_LENGTH);
+    for (let j = 0; j < RANDOM_LENGTH; j++) {
+        result[j] = 0xff & (Math.random() * (max - min) + min);
+    }
+    return result;
+};
+
+function v4(options, buf, offset) {
+    let i = (buf && offset) || 0;
+    let rnds = rng();
+    rnds[6] = (rnds[6] & 0x0f) | 0x40;
+    rnds[8] = (rnds[8] & 0x3f) | 0x80;
+    if (buf) {
+        for (var ii = 0; ii < 16; ii++) {
+            buf[i + ii] = rnds[ii];
         }
     }
-    static empty() {
-        return new Guid();
-    }
-    static newGuid(generator) {
-        return new Guid(this.generate(generator));
-    }
-    static isValid(str) {
-        if (str) {
-            return Guid.patternV4.test(str);
-        }
-        return false;
-    }
-    isValid() {
-        if (this.contentStr) {
-            return Guid.patternV4.test(this.contentStr);
-        }
-        return false;
-    }
-    isEmpty() {
-        return this.contentStr === Guid.emptyStr;
-    }
-    equals(otherGuid) {
-        return (otherGuid &&
-            !!this.contentStr &&
-            otherGuid.toString().toLowerCase() === this.contentStr.toLowerCase());
-    }
-    toString() {
-        var _a;
-        return (_a = this.contentStr) !== null && _a !== void 0 ? _a : "";
-    }
-    toNumber() {
-        var _a;
-        return (_a = this.contentInt) !== null && _a !== void 0 ? _a : -1;
-    }
-    getNumberFromGuidString() {
-        if (!this.contentStr || this.contentStr.indexOf(this.DASH) === -1) {
-            return -1;
-        }
-        return Number("0x" + this.contentStr.replace(this.DASH_REGEXP, ""));
-    }
-    static generate(generator) {
-        const val = Guid.generateRandomBytes(generator);
-        return (toHex[val[0]] +
-            toHex[val[1]] +
-            toHex[val[2]] +
-            toHex[val[3]] +
-            "-" +
-            toHex[val[4]] +
-            toHex[val[5]] +
-            "-" +
-            toHex[val[6]] +
-            toHex[val[7]] +
-            "-" +
-            toHex[val[8]] +
-            toHex[val[9]] +
-            "-" +
-            toHex[val[10]] +
-            toHex[val[11]] +
-            toHex[val[12]] +
-            toHex[val[13]] +
-            toHex[val[14]] +
-            toHex[val[15]]);
-    }
-    static generateRandomBytes(generator) {
-        const cryptoObj = Guid.getCryptoImplementation();
-        if (typeof generator !== "undefined") {
-            return Guid.getCryptoRandomBytes(generator);
-        }
-        else if (typeof cryptoObj !== "undefined") {
-            return Guid.getCryptoRandomBytes(cryptoObj);
-        }
-        else {
-            return Guid.getRandomBytes();
-        }
-    }
-    static getCryptoRandomBytes(crypto) {
-        const val = crypto.getRandomValues(new Uint8Array(16));
-        Guid.setSpecialBytesForV4Guid(val);
-        return val;
-    }
-    static getRandomBytes() {
-        let val = new Uint8Array(16);
-        val = val.map(() => {
-            return (Math.random() * Guid.MAX_UINT_8) | 0;
-        });
-        Guid.setSpecialBytesForV4Guid(val);
-        return val;
-    }
-    static setSpecialBytesForV4Guid(arr) {
-        arr[6] = (arr[6] & 0x0f) | 0x40;
-        arr[8] = (arr[8] & 0x3f) | 0x80;
-    }
-    static getCryptoImplementation() {
-        if (typeof window === "undefined") {
-            return undefined;
-        }
-        return window.crypto || window.msCrypto;
-    }
+    return buf || unparse(rnds);
 }
-Guid.patternV4 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/i;
-Guid.emptyStr = "00000000-0000-0000-0000-000000000000";
-Guid.MAX_UINT_8 = 255;
 
 const embyAxios = require("axios");
 const embyCookieManager = !(env === null || env === void 0 ? void 0 : env.debug)
@@ -371,7 +308,7 @@ function checkAndGetEmbyDeviceId(baseUrl) {
         try {
             let deviceId = await getStoredEmbyDeviceId(baseUrl);
             if (!deviceId || deviceId.length <= 0) {
-                deviceId = Guid.newGuid().toString();
+                deviceId = v4();
                 await storeEmbyDeviceId(baseUrl, deviceId);
             }
             resolve(deviceId);

@@ -1,5 +1,5 @@
 const embyAxios = require("axios");
-import Guid from "../../deps/guid";
+import uuidv4 from "../../deps/uuid/v4";
 
 const embyCookieManager = !env?.debug
   ? require("@react-native-cookies/cookies")
@@ -311,7 +311,7 @@ function checkAndGetEmbyDeviceId(baseUrl: string): Promise<string> {
     try {
       let deviceId = await getStoredEmbyDeviceId(baseUrl);
       if (!deviceId || deviceId.length <= 0) {
-        deviceId = Guid.newGuid().toString();
+        deviceId = uuidv4();
         await storeEmbyDeviceId(baseUrl, deviceId);
       }
       resolve(deviceId);
