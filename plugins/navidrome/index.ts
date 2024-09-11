@@ -38,9 +38,9 @@ function genNdAuthInfoFromLoginResp(baseUrl, loginResp): NdAuthInfo {
   };
 }
 
-function storeNdAuthInfo(baseUrl, authInfo: NdAuthInfo): Promise<any> {
+async function storeNdAuthInfo(baseUrl, authInfo: NdAuthInfo) {
   if (!ndCookieManager) {
-    return new Promise<any>((resolve, reject) => {
+    return await new Promise<any>((resolve, reject) => {
       try {
         ndDebugAuthInfo.ndBaseUrl = authInfo?.ndBaseUrl ?? "";
         ndDebugAuthInfo.ndUsername = authInfo?.ndUsername ?? "";
@@ -73,36 +73,39 @@ function storeNdAuthInfo(baseUrl, authInfo: NdAuthInfo): Promise<any> {
       name: "subsonicToken",
       value: authInfo?.subsonicToken ?? "",
     });
-    return Promise.all([
+    return await Promise.all([
       ndBaseUrlStore,
       ndUsernameStore,
       ndTokenStore,
       subsonicSaltStore,
       subsonicTokenStore,
-    ]);
+    ]).catch((err) => Promise.reject(err));
   }
 }
 
-function getStoredNdAuthInfo(baseUrl): Promise<NdAuthInfo> {
+async function getStoredNdAuthInfo(baseUrl) {
   if (!ndCookieManager) {
-    return new Promise<any>((resolve) => {
+    return await new Promise<any>((resolve) => {
       resolve(ndDebugAuthInfo);
     });
   } else {
-    return ndCookieManager.get(baseUrl).then((cookies) => {
-      return Promise.resolve({
-        ndBaseUrl: cookies.ndBaseUrl?.value,
-        ndUsername: cookies.ndUsername?.value,
-        ndToken: cookies.ndToken?.value,
-        subsonicSalt: cookies.subsonicSalt?.value,
-        subsonicToken: cookies.subsonicToken?.value,
-      });
-    });
+    return await ndCookieManager
+      .get(baseUrl)
+      .then((cookies) => {
+        return Promise.resolve({
+          ndBaseUrl: cookies.ndBaseUrl?.value,
+          ndUsername: cookies.ndUsername?.value,
+          ndToken: cookies.ndToken?.value,
+          subsonicSalt: cookies.subsonicSalt?.value,
+          subsonicToken: cookies.subsonicToken?.value,
+        });
+      })
+      .catch((err) => Promise.reject(err));
   }
 }
 
-function resetStoredNdAuthInfo(baseUrl): Promise<any> {
-  return storeNdAuthInfo(baseUrl, genDefaultNdAuthInfo());
+async function resetStoredNdAuthInfo(baseUrl) {
+  return await storeNdAuthInfo(baseUrl, genDefaultNdAuthInfo());
 }
 
 function getNdUserVariables() {
@@ -201,8 +204,9 @@ ndService.interceptors.request.use(
         : null;
 
       if (
-        baseURLHost !== storedBaseURLHost ||
-        getConfigNdUsername() !== authInfo?.ndUsername
+        (storedBaseURLHost?.length > 0 && baseURLHost !== storedBaseURLHost) ||
+        (authInfo?.ndUsername?.length > 0 &&
+          getConfigNdUsername() !== authInfo?.ndUsername)
       ) {
         await resetStoredNdAuthInfo(config.baseURL);
         authInfo = null;
@@ -291,20 +295,24 @@ function requestNdToken(): Promise<any> {
         username,
         password,
       })
-      .then(({ data }) => {
+      .then(async function ({ data }) {
         // 存储Token
-        storeNdAuthInfo(baseUrl, genNdAuthInfoFromLoginResp(baseUrl, data))
-          .then(() => {
-            resolve(data);
-          })
-          .catch((cErr) => {
-            reject(cErr);
-          });
-      })
-      .catch((err) => {
-        resetStoredNdAuthInfo(baseUrl).finally(() => {
+        try {
+          await storeNdAuthInfo(
+            baseUrl,
+            genNdAuthInfoFromLoginResp(baseUrl, data)
+          );
+          resolve(data);
+        } catch (err) {
           reject(err);
-        });
+        }
+      })
+      .catch(async function (err) {
+        try {
+          await resetStoredNdAuthInfo(baseUrl);
+        } finally {
+          reject(err);
+        }
       });
   });
 
@@ -447,16 +455,19 @@ async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
 }
 
 // 获取navidrome专辑详情
-function getNdAlbumInfo(id): Promise<any> {
-  return ndService.get(`/api/album/${id}`).then((resp) => {
-    return Promise.resolve(resp.data);
-  });
+async function getNdAlbumInfo(id) {
+  return await ndService
+    .get(`/api/album/${id}`)
+    .then((resp) => {
+      return Promise.resolve(resp.data ?? {});
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 // 获取navidrome专辑歌曲列表
-function getNdAlbumSongList(albumId, page): Promise<any> {
+async function getNdAlbumSongList(albumId, page) {
   const startIndex = (page - 1) * ND_PAGE_SIZE;
-  return ndService
+  return await ndService
     .get("/api/song", {
       params: {
         album_id: albumId,
@@ -467,8 +478,9 @@ function getNdAlbumSongList(albumId, page): Promise<any> {
       },
     })
     .then((resp) => {
-      return Promise.resolve(resp.data);
-    });
+      return Promise.resolve(resp.data ?? []);
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 function formatMusicItem(it) {

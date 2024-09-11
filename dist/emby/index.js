@@ -2,7 +2,7 @@
 
 const toHex = [];
 for (let i = 0; i < 256; ++i) {
-    toHex[i] = (i + 0x100).toString(16).substr(1);
+    toHex[i] = (i + 0x100).toString(16).substring(1);
 }
 class Guid {
     constructor(str) {
@@ -148,10 +148,10 @@ function genEmbyAuthInfoFromLoginResp(baseUrl, loginResp) {
         embyToken: (_e = loginResp === null || loginResp === void 0 ? void 0 : loginResp.AccessToken) !== null && _e !== void 0 ? _e : "",
     };
 }
-function storeEmbyAuthInfo(baseUrl, authInfo) {
+async function storeEmbyAuthInfo(baseUrl, authInfo) {
     var _a, _b, _c, _d;
     if (!embyCookieManager) {
-        return new Promise((resolve, reject) => {
+        return await new Promise((resolve, reject) => {
             var _a, _b, _c, _d;
             try {
                 embyDebugAuthInfo.embyBaseUrl = (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyBaseUrl) !== null && _a !== void 0 ? _a : "";
@@ -182,17 +182,17 @@ function storeEmbyAuthInfo(baseUrl, authInfo) {
             name: "embyToken",
             value: (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyToken) !== null && _d !== void 0 ? _d : "",
         });
-        return Promise.all([
+        return await Promise.all([
             embyBaseUrlStore,
             embyUserIdStore,
             embyUsernameStore,
             embyTokenStore,
-        ]);
+        ]).catch((err) => Promise.reject(err));
     }
 }
-function storeEmbyDeviceId(baseUrl, deviceId) {
+async function storeEmbyDeviceId(baseUrl, deviceId) {
     if (!embyCookieManager) {
-        return new Promise((resolve, reject) => {
+        return await new Promise((resolve, reject) => {
             try {
                 resolve("success");
             }
@@ -202,33 +202,38 @@ function storeEmbyDeviceId(baseUrl, deviceId) {
         });
     }
     else {
-        return embyCookieManager.set(baseUrl, {
+        return await embyCookieManager.set(baseUrl, {
             name: "embyDeviceId",
             value: deviceId,
         });
     }
 }
-function getStoredEmbyDeviceId(baseUrl) {
+async function getStoredEmbyDeviceId(baseUrl) {
     if (!embyCookieManager) {
-        return new Promise((resolve) => {
+        return await new Promise((resolve) => {
             resolve(embyDebugDeviceId);
-        });
+        }).catch((err) => Promise.reject(err));
     }
     else {
-        return embyCookieManager.get(baseUrl).then((cookies) => {
-            var _a;
-            return Promise.resolve((_a = cookies.embyDeviceId) === null || _a === void 0 ? void 0 : _a.value);
-        });
+        return await embyCookieManager
+            .get(baseUrl)
+            .then((cookies) => {
+            var _a, _b;
+            return Promise.resolve((_b = (_a = cookies.embyDeviceId) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : "");
+        })
+            .catch((err) => Promise.reject(err));
     }
 }
-function getStoredEmbyAuthInfo(baseUrl) {
+async function getStoredEmbyAuthInfo(baseUrl) {
     if (!embyCookieManager) {
-        return new Promise((resolve) => {
+        return await new Promise((resolve) => {
             resolve(embyDebugAuthInfo);
-        });
+        }).catch((err) => Promise.reject(err));
     }
     else {
-        return embyCookieManager.get(baseUrl).then((cookies) => {
+        return await embyCookieManager
+            .get(baseUrl)
+            .then((cookies) => {
             var _a, _b, _c, _d;
             return Promise.resolve({
                 embyBaseUrl: (_a = cookies.embyBaseUrl) === null || _a === void 0 ? void 0 : _a.value,
@@ -236,11 +241,12 @@ function getStoredEmbyAuthInfo(baseUrl) {
                 embyUsername: (_c = cookies.embyUsername) === null || _c === void 0 ? void 0 : _c.value,
                 embyToken: (_d = cookies.embyToken) === null || _d === void 0 ? void 0 : _d.value,
             });
-        });
+        })
+            .catch((err) => Promise.reject(err));
     }
 }
-function resetStoredEmbyAuthInfo(baseUrl) {
-    return storeEmbyAuthInfo(baseUrl, genDefaultEmbyAuthInfo());
+async function resetStoredEmbyAuthInfo(baseUrl) {
+    return await storeEmbyAuthInfo(baseUrl, genDefaultEmbyAuthInfo());
 }
 function getEmbyUserVariables() {
     var _a, _b, _c;
@@ -286,7 +292,7 @@ const embyService = embyAxios.create({
     headers: { "User-Agent": EMBY_UA },
 });
 embyService.interceptors.request.use(async function (config) {
-    var _a;
+    var _a, _b;
     config.baseURL = (_a = config.baseURL) !== null && _a !== void 0 ? _a : getConfigEmbyBaseUrl();
     if (config.method === "post") {
         config.headers["Content-Type"] = "application/json;charset=utf-8";
@@ -308,8 +314,10 @@ embyService.interceptors.request.use(async function (config) {
             const storedBaseURLHost = (authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyBaseUrl)
                 ? new URL(authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyBaseUrl).host
                 : null;
-            if (baseURLHost !== storedBaseURLHost ||
-                getConfigEmbyUsername() !== (authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUsername)) {
+            if (((storedBaseURLHost === null || storedBaseURLHost === void 0 ? void 0 : storedBaseURLHost.length) > 0 &&
+                baseURLHost !== storedBaseURLHost) ||
+                (((_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUsername) === null || _b === void 0 ? void 0 : _b.length) > 0 &&
+                    getConfigEmbyUsername() !== (authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUsername))) {
                 await resetStoredEmbyAuthInfo(config.baseURL);
                 authInfo = null;
             }
@@ -389,19 +397,22 @@ function requestEmbyToken() {
             Username: username,
             Pw: password,
         })
-            .then(({ data }) => {
-            storeEmbyAuthInfo(baseUrl, genEmbyAuthInfoFromLoginResp(baseUrl, data))
-                .then(() => {
+            .then(async function ({ data }) {
+            try {
+                await storeEmbyAuthInfo(baseUrl, genEmbyAuthInfoFromLoginResp(baseUrl, data));
                 resolve(data);
-            })
-                .catch((cErr) => {
-                reject(cErr);
-            });
-        })
-            .catch((err) => {
-            resetStoredEmbyAuthInfo(baseUrl).finally(() => {
+            }
+            catch (err) {
                 reject(err);
-            });
+            }
+        })
+            .catch(async function (err) {
+            try {
+                await resetStoredEmbyAuthInfo(baseUrl);
+            }
+            finally {
+                reject(err);
+            }
         });
     });
     embySingletonTokenRequest.finally(() => {
@@ -409,8 +420,8 @@ function requestEmbyToken() {
     });
     return embySingletonTokenRequest;
 }
-function getEmbyMusicGenres(size) {
-    return embyService
+async function getEmbyMusicGenres(size) {
+    return await embyService
         .get("/emby/MusicGenres", {
         params: {
             StartIndex: 0,
@@ -421,16 +432,20 @@ function getEmbyMusicGenres(size) {
         .then((resp) => {
         var _a, _b;
         return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
-    });
+    })
+        .catch((err) => Promise.reject(err));
 }
-function getEmbyUserMusicLibraries() {
-    return embyService.get("/emby/UserItems").then((resp) => {
+async function getEmbyUserMusicLibraries() {
+    return await embyService
+        .get("/emby/UserItems")
+        .then((resp) => {
         var _a, _b, _c;
         return Promise.resolve((_c = (_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) === null || _b === void 0 ? void 0 : _b.filter((it) => it.CollectionType === "music")) !== null && _c !== void 0 ? _c : []);
-    });
+    })
+        .catch((err) => Promise.reject(err));
 }
-function getEmbyUserMusicPlaylist(page) {
-    return embyService
+async function getEmbyUserMusicPlaylist(page) {
+    return await embyService
         .get("/emby/UserItems", {
         params: {
             StartIndex: (page - 1) * EMBY_PAGE_SIZE,
@@ -446,10 +461,11 @@ function getEmbyUserMusicPlaylist(page) {
         .then((resp) => {
         var _a, _b;
         return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
-    });
+    })
+        .catch((err) => Promise.reject(err));
 }
-function getEmbyAlbumsByGenre(genreId, page) {
-    return embyService
+async function getEmbyAlbumsByGenre(genreId, page) {
+    return await embyService
         .get("/emby/UserItems", {
         params: {
             StartIndex: (page - 1) * EMBY_PAGE_SIZE,
@@ -465,10 +481,11 @@ function getEmbyAlbumsByGenre(genreId, page) {
         .then((resp) => {
         var _a, _b;
         return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
-    });
+    })
+        .catch((err) => Promise.reject(err));
 }
-function getEmbyAlbumsByParent(parentId, page) {
-    return embyService
+async function getEmbyAlbumsByParent(parentId, page) {
+    return await embyService
         .get("/emby/UserItems", {
         params: {
             StartIndex: (page - 1) * EMBY_PAGE_SIZE,
@@ -484,10 +501,11 @@ function getEmbyAlbumsByParent(parentId, page) {
         .then((resp) => {
         var _a, _b;
         return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
-    });
+    })
+        .catch((err) => Promise.reject(err));
 }
-function getEmbyMusicListByParent(parentId, page) {
-    return embyService
+async function getEmbyMusicListByParent(parentId, page) {
+    return await embyService
         .get("/emby/UserItems", {
         params: {
             StartIndex: (page - 1) * EMBY_PAGE_SIZE,
@@ -502,7 +520,8 @@ function getEmbyMusicListByParent(parentId, page) {
         .then((resp) => {
         var _a;
         return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
-    });
+    })
+        .catch((err) => Promise.reject(err));
 }
 async function reportEmbyMusicStartPlay(musicId) {
     return await embyService

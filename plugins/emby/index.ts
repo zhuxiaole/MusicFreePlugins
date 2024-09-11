@@ -39,9 +39,9 @@ function genEmbyAuthInfoFromLoginResp(baseUrl, loginResp): EmbyAuthInfo {
   };
 }
 
-function storeEmbyAuthInfo(baseUrl, authInfo: EmbyAuthInfo): Promise<any> {
+async function storeEmbyAuthInfo(baseUrl, authInfo: EmbyAuthInfo) {
   if (!embyCookieManager) {
-    return new Promise<any>((resolve, reject) => {
+    return await new Promise<any>((resolve, reject) => {
       try {
         embyDebugAuthInfo.embyBaseUrl = authInfo?.embyBaseUrl ?? "";
         embyDebugAuthInfo.embyUserId = authInfo?.embyUserId ?? "";
@@ -69,18 +69,18 @@ function storeEmbyAuthInfo(baseUrl, authInfo: EmbyAuthInfo): Promise<any> {
       name: "embyToken",
       value: authInfo?.embyToken ?? "",
     });
-    return Promise.all([
+    return await Promise.all([
       embyBaseUrlStore,
       embyUserIdStore,
       embyUsernameStore,
       embyTokenStore,
-    ]);
+    ]).catch((err) => Promise.reject(err));
   }
 }
 
-function storeEmbyDeviceId(baseUrl, deviceId: string): Promise<any> {
+async function storeEmbyDeviceId(baseUrl, deviceId: string) {
   if (!embyCookieManager) {
-    return new Promise<any>((resolve, reject) => {
+    return await new Promise<any>((resolve, reject) => {
       try {
         resolve("success");
       } catch (err) {
@@ -88,44 +88,50 @@ function storeEmbyDeviceId(baseUrl, deviceId: string): Promise<any> {
       }
     });
   } else {
-    return embyCookieManager.set(baseUrl, {
+    return await embyCookieManager.set(baseUrl, {
       name: "embyDeviceId",
       value: deviceId,
     });
   }
 }
 
-function getStoredEmbyDeviceId(baseUrl): Promise<string> {
+async function getStoredEmbyDeviceId(baseUrl) {
   if (!embyCookieManager) {
-    return new Promise<any>((resolve) => {
+    return await new Promise<any>((resolve) => {
       resolve(embyDebugDeviceId);
-    });
+    }).catch((err) => Promise.reject(err));
   } else {
-    return embyCookieManager.get(baseUrl).then((cookies) => {
-      return Promise.resolve(cookies.embyDeviceId?.value);
-    });
+    return await embyCookieManager
+      .get(baseUrl)
+      .then((cookies) => {
+        return Promise.resolve(cookies.embyDeviceId?.value ?? "");
+      })
+      .catch((err) => Promise.reject(err));
   }
 }
 
-function getStoredEmbyAuthInfo(baseUrl): Promise<EmbyAuthInfo> {
+async function getStoredEmbyAuthInfo(baseUrl) {
   if (!embyCookieManager) {
-    return new Promise<any>((resolve) => {
+    return await new Promise<any>((resolve) => {
       resolve(embyDebugAuthInfo);
-    });
+    }).catch((err) => Promise.reject(err));
   } else {
-    return embyCookieManager.get(baseUrl).then((cookies) => {
-      return Promise.resolve({
-        embyBaseUrl: cookies.embyBaseUrl?.value,
-        embyUserId: cookies.embyUserId?.value,
-        embyUsername: cookies.embyUsername?.value,
-        embyToken: cookies.embyToken?.value,
-      });
-    });
+    return await embyCookieManager
+      .get(baseUrl)
+      .then((cookies) => {
+        return Promise.resolve({
+          embyBaseUrl: cookies.embyBaseUrl?.value,
+          embyUserId: cookies.embyUserId?.value,
+          embyUsername: cookies.embyUsername?.value,
+          embyToken: cookies.embyToken?.value,
+        });
+      })
+      .catch((err) => Promise.reject(err));
   }
 }
 
-function resetStoredEmbyAuthInfo(baseUrl): Promise<any> {
-  return storeEmbyAuthInfo(baseUrl, genDefaultEmbyAuthInfo());
+async function resetStoredEmbyAuthInfo(baseUrl) {
+  return await storeEmbyAuthInfo(baseUrl, genDefaultEmbyAuthInfo());
 }
 
 function getEmbyUserVariables() {
@@ -221,8 +227,10 @@ embyService.interceptors.request.use(
           : null;
 
         if (
-          baseURLHost !== storedBaseURLHost ||
-          getConfigEmbyUsername() !== authInfo?.embyUsername
+          (storedBaseURLHost?.length > 0 &&
+            baseURLHost !== storedBaseURLHost) ||
+          (authInfo?.embyUsername?.length > 0 &&
+            getConfigEmbyUsername() !== authInfo?.embyUsername)
         ) {
           await resetStoredEmbyAuthInfo(config.baseURL);
           authInfo = null;
@@ -339,20 +347,24 @@ function requestEmbyToken(): Promise<any> {
         Username: username,
         Pw: password,
       })
-      .then(({ data }) => {
+      .then(async function ({ data }) {
         // 存储Token
-        storeEmbyAuthInfo(baseUrl, genEmbyAuthInfoFromLoginResp(baseUrl, data))
-          .then(() => {
-            resolve(data);
-          })
-          .catch((cErr) => {
-            reject(cErr);
-          });
-      })
-      .catch((err) => {
-        resetStoredEmbyAuthInfo(baseUrl).finally(() => {
+        try {
+          await storeEmbyAuthInfo(
+            baseUrl,
+            genEmbyAuthInfoFromLoginResp(baseUrl, data)
+          );
+          resolve(data);
+        } catch (err) {
           reject(err);
-        });
+        }
+      })
+      .catch(async function (err) {
+        try {
+          await resetStoredEmbyAuthInfo(baseUrl);
+        } finally {
+          reject(err);
+        }
       });
   });
 
@@ -365,8 +377,8 @@ function requestEmbyToken(): Promise<any> {
 }
 
 // 获取 Emby 音乐风格列表
-function getEmbyMusicGenres(size): Promise<any> {
-  return embyService
+async function getEmbyMusicGenres(size) {
+  return await embyService
     .get("/emby/MusicGenres", {
       params: {
         StartIndex: 0,
@@ -376,21 +388,25 @@ function getEmbyMusicGenres(size): Promise<any> {
     })
     .then((resp) => {
       return Promise.resolve(resp.data?.Items ?? []);
-    });
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 // 获取 Emby 用户音乐类型的媒体库
-function getEmbyUserMusicLibraries(): Promise<any> {
-  return embyService.get("/emby/UserItems").then((resp) => {
-    return Promise.resolve(
-      resp.data?.Items?.filter((it) => it.CollectionType === "music") ?? []
-    );
-  });
+async function getEmbyUserMusicLibraries() {
+  return await embyService
+    .get("/emby/UserItems")
+    .then((resp) => {
+      return Promise.resolve(
+        resp.data?.Items?.filter((it) => it.CollectionType === "music") ?? []
+      );
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 // 获取 Emby 用户歌单列表
-function getEmbyUserMusicPlaylist(page): Promise<any> {
-  return embyService
+async function getEmbyUserMusicPlaylist(page) {
+  return await embyService
     .get("/emby/UserItems", {
       params: {
         StartIndex: (page - 1) * EMBY_PAGE_SIZE,
@@ -405,12 +421,13 @@ function getEmbyUserMusicPlaylist(page): Promise<any> {
     })
     .then((resp) => {
       return Promise.resolve(resp.data?.Items ?? []);
-    });
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 // Emby 根据风格类型获取专辑列表
-function getEmbyAlbumsByGenre(genreId, page): Promise<any> {
-  return embyService
+async function getEmbyAlbumsByGenre(genreId, page) {
+  return await embyService
     .get("/emby/UserItems", {
       params: {
         StartIndex: (page - 1) * EMBY_PAGE_SIZE,
@@ -425,12 +442,13 @@ function getEmbyAlbumsByGenre(genreId, page): Promise<any> {
     })
     .then((resp) => {
       return Promise.resolve(resp.data?.Items ?? []);
-    });
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 // Emby 根据 parentId 获取专辑列表
-function getEmbyAlbumsByParent(parentId, page): Promise<any> {
-  return embyService
+async function getEmbyAlbumsByParent(parentId, page) {
+  return await embyService
     .get("/emby/UserItems", {
       params: {
         StartIndex: (page - 1) * EMBY_PAGE_SIZE,
@@ -445,12 +463,13 @@ function getEmbyAlbumsByParent(parentId, page): Promise<any> {
     })
     .then((resp) => {
       return Promise.resolve(resp.data?.Items ?? []);
-    });
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 // Emby 根据 parentId 获取歌曲列表
-function getEmbyMusicListByParent(parentId, page): Promise<any> {
-  return embyService
+async function getEmbyMusicListByParent(parentId, page) {
+  return await embyService
     .get("/emby/UserItems", {
       params: {
         StartIndex: (page - 1) * EMBY_PAGE_SIZE,
@@ -464,7 +483,8 @@ function getEmbyMusicListByParent(parentId, page): Promise<any> {
     })
     .then((resp) => {
       return Promise.resolve(resp.data ?? {});
-    });
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 async function getEmbyMusicInfo(musicId) {

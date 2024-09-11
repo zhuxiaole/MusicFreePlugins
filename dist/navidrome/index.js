@@ -32,10 +32,10 @@ function genNdAuthInfoFromLoginResp(baseUrl, loginResp) {
         subsonicToken: (_d = loginResp === null || loginResp === void 0 ? void 0 : loginResp.subsonicToken) !== null && _d !== void 0 ? _d : "",
     };
 }
-function storeNdAuthInfo(baseUrl, authInfo) {
+async function storeNdAuthInfo(baseUrl, authInfo) {
     var _a, _b, _c, _d, _e;
     if (!ndCookieManager) {
-        return new Promise((resolve, reject) => {
+        return await new Promise((resolve, reject) => {
             var _a, _b, _c, _d, _e;
             try {
                 ndDebugAuthInfo.ndBaseUrl = (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "";
@@ -71,23 +71,25 @@ function storeNdAuthInfo(baseUrl, authInfo) {
             name: "subsonicToken",
             value: (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "",
         });
-        return Promise.all([
+        return await Promise.all([
             ndBaseUrlStore,
             ndUsernameStore,
             ndTokenStore,
             subsonicSaltStore,
             subsonicTokenStore,
-        ]);
+        ]).catch((err) => Promise.reject(err));
     }
 }
-function getStoredNdAuthInfo(baseUrl) {
+async function getStoredNdAuthInfo(baseUrl) {
     if (!ndCookieManager) {
-        return new Promise((resolve) => {
+        return await new Promise((resolve) => {
             resolve(ndDebugAuthInfo);
         });
     }
     else {
-        return ndCookieManager.get(baseUrl).then((cookies) => {
+        return await ndCookieManager
+            .get(baseUrl)
+            .then((cookies) => {
             var _a, _b, _c, _d, _e;
             return Promise.resolve({
                 ndBaseUrl: (_a = cookies.ndBaseUrl) === null || _a === void 0 ? void 0 : _a.value,
@@ -96,11 +98,12 @@ function getStoredNdAuthInfo(baseUrl) {
                 subsonicSalt: (_d = cookies.subsonicSalt) === null || _d === void 0 ? void 0 : _d.value,
                 subsonicToken: (_e = cookies.subsonicToken) === null || _e === void 0 ? void 0 : _e.value,
             });
-        });
+        })
+            .catch((err) => Promise.reject(err));
     }
 }
-function resetStoredNdAuthInfo(baseUrl) {
-    return storeNdAuthInfo(baseUrl, genDefaultNdAuthInfo());
+async function resetStoredNdAuthInfo(baseUrl) {
+    return await storeNdAuthInfo(baseUrl, genDefaultNdAuthInfo());
 }
 function getNdUserVariables() {
     var _a, _b, _c;
@@ -155,7 +158,7 @@ const ndService = ndAxios.create({
     headers: { "User-Agent": ND_UA },
 });
 ndService.interceptors.request.use(async function (config) {
-    var _a;
+    var _a, _b;
     config.baseURL = (_a = config.baseURL) !== null && _a !== void 0 ? _a : getConfigNdBaseUrl();
     if (config.method === "post") {
         config.headers["Content-Type"] = "application/json;charset=utf-8";
@@ -169,8 +172,9 @@ ndService.interceptors.request.use(async function (config) {
         const storedBaseURLHost = (authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl)
             ? new URL(authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl).host
             : null;
-        if (baseURLHost !== storedBaseURLHost ||
-            getConfigNdUsername() !== (authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername)) {
+        if (((storedBaseURLHost === null || storedBaseURLHost === void 0 ? void 0 : storedBaseURLHost.length) > 0 && baseURLHost !== storedBaseURLHost) ||
+            (((_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) === null || _b === void 0 ? void 0 : _b.length) > 0 &&
+                getConfigNdUsername() !== (authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername))) {
             await resetStoredNdAuthInfo(config.baseURL);
             authInfo = null;
         }
@@ -223,19 +227,22 @@ function requestNdToken() {
             username,
             password,
         })
-            .then(({ data }) => {
-            storeNdAuthInfo(baseUrl, genNdAuthInfoFromLoginResp(baseUrl, data))
-                .then(() => {
+            .then(async function ({ data }) {
+            try {
+                await storeNdAuthInfo(baseUrl, genNdAuthInfoFromLoginResp(baseUrl, data));
                 resolve(data);
-            })
-                .catch((cErr) => {
-                reject(cErr);
-            });
-        })
-            .catch((err) => {
-            resetStoredNdAuthInfo(baseUrl).finally(() => {
+            }
+            catch (err) {
                 reject(err);
-            });
+            }
+        })
+            .catch(async function (err) {
+            try {
+                await resetStoredNdAuthInfo(baseUrl);
+            }
+            finally {
+                reject(err);
+            }
         });
     });
     ndSingletonTokenRequest.finally(() => {
@@ -345,14 +352,18 @@ async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
         },
     })).data;
 }
-function getNdAlbumInfo(id) {
-    return ndService.get(`/api/album/${id}`).then((resp) => {
-        return Promise.resolve(resp.data);
-    });
+async function getNdAlbumInfo(id) {
+    return await ndService
+        .get(`/api/album/${id}`)
+        .then((resp) => {
+        var _a;
+        return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
+    })
+        .catch((err) => Promise.reject(err));
 }
-function getNdAlbumSongList(albumId, page) {
+async function getNdAlbumSongList(albumId, page) {
     const startIndex = (page - 1) * ND_PAGE_SIZE;
-    return ndService
+    return await ndService
         .get("/api/song", {
         params: {
             album_id: albumId,
@@ -363,8 +374,10 @@ function getNdAlbumSongList(albumId, page) {
         },
     })
         .then((resp) => {
-        return Promise.resolve(resp.data);
-    });
+        var _a;
+        return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : []);
+    })
+        .catch((err) => Promise.reject(err));
 }
 function formatMusicItem(it) {
     var _a;

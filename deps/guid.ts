@@ -2,7 +2,7 @@
 
 const toHex: string[] = []; // Array to map bytes to its corresponding hex value.
 for (let i = 0; i < 256; ++i) {
-  toHex[i] = (i + 0x100).toString(16).substr(1);
+  toHex[i] = (i + 0x100).toString(16).substring(1);
 }
 
 export default class Guid {
