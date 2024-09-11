@@ -319,6 +319,9 @@ embyService.interceptors.request.use(async function (config) {
             if (isEmbyAuthInfoValid(authInfo)) {
                 authHeader = `Emby UserId=${authInfo.embyUserId}, ${authHeader}`;
                 config.headers["X-Emby-Token"] = authInfo.embyToken;
+                if (config.url && config.url.startsWith("/emby/UserItems")) {
+                    config.url = `/emby/Users/${authInfo.embyUserId}/Items`;
+                }
             }
         }
         config.headers["Authorization"] = authHeader;
@@ -400,6 +403,26 @@ function requestEmbyToken() {
     });
     return embySingletonTokenRequest;
 }
+function getEmbyMusicGenres(size) {
+    return embyService
+        .get("/emby/MusicGenres", {
+        params: {
+            StartIndex: 0,
+            Limit: size,
+            IncludeItemTypes: "MusicAlbum",
+        },
+    })
+        .then((resp) => {
+        var _a, _b;
+        return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
+    });
+}
+function getEmbyUserMusicLibraries() {
+    return embyService.get("/emby/UserItems").then((resp) => {
+        var _a, _b, _c;
+        return Promise.resolve((_c = (_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) === null || _b === void 0 ? void 0 : _b.filter((it) => it.CollectionType === "music")) !== null && _c !== void 0 ? _c : []);
+    });
+}
 module.exports = {
     platform: EMBY_PLUGIN_NAME,
     version: EMBY_PLUGIN_VERSION,
@@ -423,25 +446,29 @@ module.exports = {
     ],
     supportedSearchType: ["music"],
     async getRecommendSheetTags() {
-        var _a;
-        const resp = (await embyService.get("/emby/MusicGenres", {
-            params: {
-                StartIndex: 0,
-                Limit: 30,
-                IncludeItemTypes: "MusicAlbum",
-            },
-        })).data;
-        console.log(resp);
-        const data = (_a = resp === null || resp === void 0 ? void 0 : resp.Items) === null || _a === void 0 ? void 0 : _a.map((it) => ({
+        var _a, _b;
+        const musicLibsRequest = getEmbyUserMusicLibraries();
+        const generesRequest = getEmbyMusicGenres(30);
+        const data = await Promise.all([musicLibsRequest, generesRequest]);
+        const libsData = (_a = data[0]) === null || _a === void 0 ? void 0 : _a.map((it) => ({
             id: it.Id,
             title: it.Name,
         }));
+        const generesData = (_b = data[1]) === null || _b === void 0 ? void 0 : _b.map((it) => ({
+            id: it.Id,
+            title: it.Name,
+            type: "genere",
+        }));
         return {
-            pinned: data,
+            pinned: libsData,
             data: [
                 {
+                    title: "媒体库",
+                    data: libsData,
+                },
+                {
                     title: "风格",
-                    data: data,
+                    data: generesData,
                 },
             ],
         };

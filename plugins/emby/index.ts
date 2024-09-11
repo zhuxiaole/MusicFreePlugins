@@ -238,6 +238,11 @@ embyService.interceptors.request.use(
           // 设置头部 token
           authHeader = `Emby UserId=${authInfo.embyUserId}, ${authHeader}`;
           config.headers["X-Emby-Token"] = authInfo.embyToken;
+
+          // /emby/MusicViews 设置 userId
+          if (config.url && config.url.startsWith("/emby/UserItems")) {
+            config.url = `/emby/Users/${authInfo.embyUserId}/Items`;
+          }
         }
       }
 
@@ -352,6 +357,30 @@ function requestEmbyToken(): Promise<any> {
   return embySingletonTokenRequest;
 }
 
+// 获取 Emby 音乐风格列表
+function getEmbyMusicGenres(size): Promise<any> {
+  return embyService
+    .get("/emby/MusicGenres", {
+      params: {
+        StartIndex: 0,
+        Limit: size,
+        IncludeItemTypes: "MusicAlbum",
+      },
+    })
+    .then((resp) => {
+      return Promise.resolve(resp.data?.Items ?? []);
+    });
+}
+
+// 获取 Emby 用户音乐类型的媒体库
+function getEmbyUserMusicLibraries(): Promise<any> {
+  return embyService.get("/emby/UserItems").then((resp) => {
+    return Promise.resolve(
+      resp.data?.Items?.filter((it) => it.CollectionType === "music") ?? []
+    );
+  });
+}
+
 type EmbyAuthInfo = {
   embyBaseUrl: string;
   embyUserId: string;
@@ -384,29 +413,31 @@ module.exports = {
   supportedSearchType: ["music"],
   // 获取推荐歌单标签
   async getRecommendSheetTags() {
-    const resp = (
-      await embyService.get("/emby/MusicGenres", {
-        params: {
-          StartIndex: 0,
-          Limit: 30,
-          IncludeItemTypes: "MusicAlbum",
-        },
-      })
-    ).data;
+    const musicLibsRequest = getEmbyUserMusicLibraries();
+    const generesRequest = getEmbyMusicGenres(30);
+    const data = await Promise.all([musicLibsRequest, generesRequest]);
 
-    console.log(resp);
-
-    const data = resp?.Items?.map((it) => ({
+    const libsData = data[0]?.map((it) => ({
       id: it.Id,
       title: it.Name,
     }));
 
+    const generesData = data[1]?.map((it) => ({
+      id: it.Id,
+      title: it.Name,
+      type: "genere",
+    }));
+
     return {
-      pinned: data,
+      pinned: libsData,
       data: [
         {
+          title: "媒体库",
+          data: libsData,
+        },
+        {
           title: "风格",
-          data: data,
+          data: generesData,
         },
       ],
     };
