@@ -467,11 +467,10 @@ function getEmbyMusicListByParent(parentId, page): Promise<any> {
     });
 }
 
-function getEmbyMusicInfo(musicId): Promise<any> {
+async function getEmbyMusicInfo(musicId) {
   // 会经过拦截器重新拼接url
-  return embyService.get(`/emby/UserGetItem/${musicId}`).then((resp) => {
-    return Promise.resolve(resp.data ?? {});
-  });
+  const resp = await embyService.get(`/emby/UserGetItem/${musicId}`);
+  return resp.data ?? {};
 }
 
 function formatEmbyPlaylistItem(playlistItem, username) {
@@ -560,6 +559,45 @@ module.exports = {
     },
   ],
   supportedSearchType: ["music"],
+  // 获取歌曲播放流
+  async getMediaSource(musicItem, quality) {
+    // 播放记录
+    // scrobble(musicItem.id);
+
+    const baseUrl = getConfigEmbyBaseUrl();
+    const deviceId = await checkAndGetEmbyDeviceId(baseUrl);
+    if (!isEmbyAuthInfoValid(await getStoredEmbyAuthInfo(baseUrl))) {
+      await requestEmbyToken();
+    }
+    const authInfo = await getStoredEmbyAuthInfo(baseUrl);
+    const urlObj = new URL(baseUrl);
+    urlObj.pathname = `/emby/Audio/${musicItem.id}/universal`;
+    urlObj.searchParams.append("X-Emby-Token", authInfo?.embyToken ?? "");
+    urlObj.searchParams.append(
+      "UserId",
+      (await getStoredEmbyAuthInfo(baseUrl)).embyUserId
+    );
+    urlObj.searchParams.append("X-Emby-Device-Id", deviceId);
+    urlObj.searchParams.append("X-Emby-Device-Name", EMBY_DEVICE_NAME);
+    urlObj.searchParams.append(
+      "X-Emby-Client",
+      `MusicFree-${EMBY_PLUGIN_NAME}-Plugin`
+    );
+    urlObj.searchParams.append("X-Emby-Client-Version", EMBY_PLUGIN_VERSION);
+    urlObj.searchParams.append(
+      "Container",
+      "opus,mp3|mp3,mp2,mp3|mp2,aac|aac,m4a|aac,mp4|aac,flac,webma,webm,wav|PCM_S16LE,wav|PCM_S24LE,ogg"
+    );
+    urlObj.searchParams.append("TranscodingContainer", "aac");
+    urlObj.searchParams.append("TranscodingProtocol", "hls");
+    urlObj.searchParams.append("AudioCodec", "aac");
+    urlObj.searchParams.append("EnableRedirection", "true");
+    urlObj.searchParams.append("EnableRemoteMedia", "false");
+
+    return {
+      url: urlObj.toString(),
+    };
+  },
   // 获取歌曲详情
   async getMusicInfo(musicItem) {
     const musicInfo = await getEmbyMusicInfo(musicItem.id);

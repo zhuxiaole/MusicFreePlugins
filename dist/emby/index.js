@@ -504,11 +504,10 @@ function getEmbyMusicListByParent(parentId, page) {
         return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
     });
 }
-function getEmbyMusicInfo(musicId) {
-    return embyService.get(`/emby/UserGetItem/${musicId}`).then((resp) => {
-        var _a;
-        return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
-    });
+async function getEmbyMusicInfo(musicId) {
+    var _a;
+    const resp = await embyService.get(`/emby/UserGetItem/${musicId}`);
+    return (_a = resp.data) !== null && _a !== void 0 ? _a : {};
 }
 function formatEmbyPlaylistItem(playlistItem, username) {
     var _a, _b, _c;
@@ -587,6 +586,32 @@ module.exports = {
         },
     ],
     supportedSearchType: ["music"],
+    async getMediaSource(musicItem, quality) {
+        var _a;
+        const baseUrl = getConfigEmbyBaseUrl();
+        const deviceId = await checkAndGetEmbyDeviceId(baseUrl);
+        if (!isEmbyAuthInfoValid(await getStoredEmbyAuthInfo(baseUrl))) {
+            await requestEmbyToken();
+        }
+        const authInfo = await getStoredEmbyAuthInfo(baseUrl);
+        const urlObj = new URL(baseUrl);
+        urlObj.pathname = `/emby/Audio/${musicItem.id}/universal`;
+        urlObj.searchParams.append("X-Emby-Token", (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyToken) !== null && _a !== void 0 ? _a : "");
+        urlObj.searchParams.append("UserId", (await getStoredEmbyAuthInfo(baseUrl)).embyUserId);
+        urlObj.searchParams.append("X-Emby-Device-Id", deviceId);
+        urlObj.searchParams.append("X-Emby-Device-Name", EMBY_DEVICE_NAME);
+        urlObj.searchParams.append("X-Emby-Client", `MusicFree-${EMBY_PLUGIN_NAME}-Plugin`);
+        urlObj.searchParams.append("X-Emby-Client-Version", EMBY_PLUGIN_VERSION);
+        urlObj.searchParams.append("Container", "opus,mp3|mp3,mp2,mp3|mp2,aac|aac,m4a|aac,mp4|aac,flac,webma,webm,wav|PCM_S16LE,wav|PCM_S24LE,ogg");
+        urlObj.searchParams.append("TranscodingContainer", "aac");
+        urlObj.searchParams.append("TranscodingProtocol", "hls");
+        urlObj.searchParams.append("AudioCodec", "aac");
+        urlObj.searchParams.append("EnableRedirection", "true");
+        urlObj.searchParams.append("EnableRemoteMedia", "false");
+        return {
+            url: urlObj.toString(),
+        };
+    },
     async getMusicInfo(musicItem) {
         var _a, _b, _c;
         const musicInfo = await getEmbyMusicInfo(musicItem.id);
