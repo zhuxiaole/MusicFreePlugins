@@ -389,7 +389,9 @@ function getEmbyUserMusicPlaylist(page): Promise<any> {
         StartIndex: (page - 1) * EMBY_PAGE_SIZE,
         Limit: EMBY_PAGE_SIZE,
         IncludeItemTypes: "Playlist",
+        Tags: "music", // 只获取音乐歌单
         Recursive: true,
+        EnableUserData: true,
         EnableImageTypes: "Primary",
         Fields: "BasicSyncInfo,Overview,DateCreated",
       },
