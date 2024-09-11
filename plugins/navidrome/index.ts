@@ -342,9 +342,9 @@ function getSubsonicURL(pathname) {
   return urlObj;
 }
 
-function getCoverArtUrl(coverArt) {
+function getNdCoverArtUrl(itemId) {
   const urlObj = getSubsonicURL("/rest/getCoverArt");
-  urlObj.searchParams.append("id", coverArt);
+  urlObj.searchParams.append("id", itemId);
   urlObj.searchParams.append("size", "300");
   return urlObj.toString();
 }
@@ -475,7 +475,7 @@ function formatMusicItem(it) {
   const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
   let rawLrc = "";
   if (lyricsArr && lyricsArr.length > 0) {
-    rawLrc = convertToLRC(lyricsArr[0]?.line);
+    rawLrc = convertToLRC(lyricsArr?.[0]?.line);
   }
   return {
     id: it.id,
@@ -484,7 +484,7 @@ function formatMusicItem(it) {
     artistId: it.artistId,
     album: it.album,
     albumid: it.albumId,
-    artwork: getCoverArtUrl(it.id),
+    artwork: getNdCoverArtUrl(it.id),
     duration: it.duration,
     rawLrc: rawLrc,
   };
@@ -494,7 +494,7 @@ function formatPlaylistMusicItem(it) {
   const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
   let rawLrc = "";
   if (lyricsArr && lyricsArr.length > 0) {
-    rawLrc = convertToLRC(lyricsArr[0]?.line);
+    rawLrc = convertToLRC(lyricsArr?.[0]?.line);
   }
   return {
     id: it.mediaFileId,
@@ -503,7 +503,7 @@ function formatPlaylistMusicItem(it) {
     artistId: it.artistId,
     album: it.album,
     albumid: it.albumId,
-    artwork: getCoverArtUrl(it.mediaFileId),
+    artwork: getNdCoverArtUrl(it.mediaFileId),
     duration: it.duration,
     rawLrc: rawLrc,
   };
@@ -515,7 +515,7 @@ function formatAlbumItem(it) {
     title: it.name,
     artist: it.artist,
     artistId: it.artistId,
-    artwork: getCoverArtUrl(it.id),
+    artwork: getNdCoverArtUrl(it.id),
     worksNums: it.songCount,
     duration: it.duration,
     date: it.date,
@@ -527,7 +527,7 @@ function formatArtistItem(it) {
   return {
     id: it.id,
     name: it.name,
-    avatar: getCoverArtUrl(it.id),
+    avatar: getNdCoverArtUrl(it.id),
     worksNum: it.songCount,
   };
 }
@@ -537,7 +537,7 @@ function formatPlaylistItem(it) {
     id: it.id,
     artist: it.ownerName,
     title: it.name,
-    artwork: getCoverArtUrl(it.id),
+    artwork: getNdCoverArtUrl(it.id),
     playCount: it.playCount ?? 0,
     worksNums: it.songCount,
     createTime: it.createdAt,
@@ -685,7 +685,7 @@ function formatAlbumSheetItem(it) {
     id: it.id,
     description: it.artist,
     title: it.name,
-    coverImg: getCoverArtUrl(it.id),
+    coverImg: getNdCoverArtUrl(it.id),
     playCount: it.playCount,
     sheetType: "album",
   };
@@ -822,7 +822,7 @@ module.exports = {
     ).data;
 
     const lyricLines =
-      data["subsonic-response"]?.lyricsList?.structuredLyrics[0]?.line;
+      data["subsonic-response"]?.lyricsList?.structuredLyrics?.[0]?.line;
 
     return {
       rawLrc: convertToLRC(lyricLines),
@@ -929,42 +929,42 @@ module.exports = {
       randomList,
     ]);
 
-    if (datas[0]?.length > 0) {
+    if (datas?.[0]?.length > 0) {
       result.push({
         title: "最近播放的专辑",
         data: datas[0],
       });
     }
 
-    if (datas[1]?.length > 0) {
+    if (datas?.[1]?.length > 0) {
       result.push({
         title: "收藏专辑",
         data: datas[1],
       });
     }
 
-    if (datas[2]?.length > 0) {
+    if (datas?.[2]?.length > 0) {
       result.push({
         title: "评分最高的专辑",
         data: datas[2],
       });
     }
 
-    if (datas[3]?.length > 0) {
+    if (datas?.[3]?.length > 0) {
       result.push({
         title: "播放最多的专辑",
         data: datas[3],
       });
     }
 
-    if (datas[4]?.length > 0) {
+    if (datas?.[4]?.length > 0) {
       result.push({
         title: "最近添加的专辑",
         data: datas[4],
       });
     }
 
-    if (datas[5]?.length > 0) {
+    if (datas?.[5]?.length > 0) {
       result.push({
         title: "随机专辑",
         data: datas[5],

@@ -295,7 +295,7 @@ function checkAndGetEmbyDeviceId(baseUrl: string): Promise<string> {
   ) {
     try {
       let deviceId = await getStoredEmbyDeviceId(baseUrl);
-      if (!deviceId || deviceId.length < 0) {
+      if (!deviceId || deviceId.length <= 0) {
         deviceId = Guid.newGuid().toString();
         await storeEmbyDeviceId(baseUrl, deviceId);
       }
@@ -381,6 +381,102 @@ function getEmbyUserMusicLibraries(): Promise<any> {
   });
 }
 
+// 获取 Emby 用户歌单列表
+function getEmbyUserMusicPlaylist(page): Promise<any> {
+  return embyService
+    .get("/emby/UserItems", {
+      params: {
+        StartIndex: (page - 1) * EMBY_PAGE_SIZE,
+        Limit: EMBY_PAGE_SIZE,
+        IncludeItemTypes: "Playlist",
+        Recursive: true,
+        EnableImageTypes: "Primary",
+        Fields: "BasicSyncInfo,Overview,DateCreated",
+      },
+    })
+    .then((resp) => {
+      return Promise.resolve(resp.data?.Items ?? []);
+    });
+}
+
+// Emby 根据风格类型获取专辑列表
+function getEmbyAlbumsByGenre(genreId, page): Promise<any> {
+  return embyService
+    .get("/emby/UserItems", {
+      params: {
+        StartIndex: (page - 1) * EMBY_PAGE_SIZE,
+        Limit: EMBY_PAGE_SIZE,
+        IncludeItemTypes: "MusicAlbum",
+        Recursive: true,
+        GenreIds: genreId,
+        EnableImageTypes: "Primary",
+        Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
+      },
+    })
+    .then((resp) => {
+      return Promise.resolve(resp.data?.Items ?? []);
+    });
+}
+
+// Emby 根据 parentId 获取专辑列表
+function getEmbyAlbumsByParent(parentId, page): Promise<any> {
+  return embyService
+    .get("/emby/UserItems", {
+      params: {
+        StartIndex: (page - 1) * EMBY_PAGE_SIZE,
+        Limit: EMBY_PAGE_SIZE,
+        IncludeItemTypes: "MusicAlbum",
+        Recursive: true,
+        ParentId: parentId,
+        EnableImageTypes: "Primary",
+        Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
+      },
+    })
+    .then((resp) => {
+      return Promise.resolve(resp.data?.Items ?? []);
+    });
+}
+
+function formatEmbyPlaylistItem(playlistItem, username) {
+  return {
+    id: playlistItem.Id,
+    artist: username,
+    title: playlistItem.Name,
+    artwork: getEmbyCoverArtUrl(
+      playlistItem.Id,
+      playlistItem.ImageTags?.Primary
+    ),
+    playCount: playlistItem.UserData?.PlayCount ?? 0,
+    createTime: playlistItem.DateCreated,
+    description: playlistItem.Overview ?? "",
+  };
+}
+
+function formatEmbyAlbumItem(playlistItem) {
+  return {
+    id: playlistItem.Id,
+    artist: playlistItem.AlbumArtist,
+    title: playlistItem.Name,
+    artwork: getEmbyCoverArtUrl(
+      playlistItem.PrimaryImageItemId,
+      playlistItem.PrimaryImageTag
+    ),
+    playCount: playlistItem.UserData?.PlayCount ?? 0,
+    createTime: playlistItem.DateCreated,
+    description: playlistItem.Overview ?? "",
+  };
+}
+
+function getEmbyCoverArtUrl(imgId, imgTag) {
+  const urlObj = new URL(getConfigEmbyBaseUrl());
+  urlObj.pathname = `/emby/Items/${imgId}/Images/Primary`;
+  urlObj.searchParams.append("tag", imgTag);
+  urlObj.searchParams.append("maxHeight", "300");
+  urlObj.searchParams.append("maxWidth", "300");
+  urlObj.searchParams.append("quality", "90");
+  return urlObj.toString();
+}
+
 type EmbyAuthInfo = {
   embyBaseUrl: string;
   embyUserId: string;
@@ -414,18 +510,18 @@ module.exports = {
   // 获取推荐歌单标签
   async getRecommendSheetTags() {
     const musicLibsRequest = getEmbyUserMusicLibraries();
-    const generesRequest = getEmbyMusicGenres(30);
-    const data = await Promise.all([musicLibsRequest, generesRequest]);
+    const genresRequest = getEmbyMusicGenres(30);
+    const data = await Promise.all([musicLibsRequest, genresRequest]);
 
-    const libsData = data[0]?.map((it) => ({
+    const libsData = data?.[0]?.map((it) => ({
       id: it.Id,
       title: it.Name,
     }));
 
-    const generesData = data[1]?.map((it) => ({
+    const genresData = data?.[1]?.map((it) => ({
       id: it.Id,
       title: it.Name,
-      type: "genere",
+      type: "genre",
     }));
 
     return {
@@ -437,16 +533,44 @@ module.exports = {
         },
         {
           title: "风格",
-          data: generesData,
+          data: genresData,
         },
       ],
     };
   },
   // 获取推荐歌单
   async getRecommendSheetsByTag(tagItem, page) {
+    let sheets = null;
+    if (!tagItem || tagItem.id.length <= 0) {
+      const username = getConfigEmbyUsername();
+      sheets = await getEmbyUserMusicPlaylist(page);
+      sheets = sheets?.map((it) => {
+        return {
+          ...formatEmbyPlaylistItem(it, username),
+          sheetType: "playlist",
+        };
+      });
+    } else if (tagItem.type === "genre") {
+      sheets = await getEmbyAlbumsByGenre(tagItem.id, page);
+      sheets = sheets?.map((it) => {
+        return {
+          ...formatEmbyAlbumItem(it),
+          sheetType: "album",
+        };
+      });
+    } else {
+      sheets = await getEmbyAlbumsByParent(tagItem.id, page);
+      sheets = sheets?.map((it) => {
+        return {
+          ...formatEmbyAlbumItem(it),
+          sheetType: "album",
+        };
+      });
+    }
+
     return {
-      isEnd: true,
-      data: [],
+      isEnd: sheets == null ? true : sheets.length < EMBY_PAGE_SIZE,
+      data: sheets,
     };
   },
 };

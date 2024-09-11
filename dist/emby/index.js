@@ -125,6 +125,7 @@ const embyCookieManager = !(env === null || env === void 0 ? void 0 : env.debug)
 const EMBY_DEVICE_NAME = "MusicFree";
 const EMBY_PLUGIN_NAME = "Emby";
 const EMBY_PLUGIN_VERSION = "0.0.1";
+const EMBY_PAGE_SIZE = 25;
 const EMBY_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
 let embySingletonTokenRequest = null;
 let embyCheckDeviceIdRequest = null;
@@ -356,7 +357,7 @@ function checkAndGetEmbyDeviceId(baseUrl) {
     embyCheckDeviceIdRequest = new Promise(async function (resolve, reject) {
         try {
             let deviceId = await getStoredEmbyDeviceId(baseUrl);
-            if (!deviceId || deviceId.length < 0) {
+            if (!deviceId || deviceId.length <= 0) {
                 deviceId = Guid.newGuid().toString();
                 await storeEmbyDeviceId(baseUrl, deviceId);
             }
@@ -423,6 +424,92 @@ function getEmbyUserMusicLibraries() {
         return Promise.resolve((_c = (_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) === null || _b === void 0 ? void 0 : _b.filter((it) => it.CollectionType === "music")) !== null && _c !== void 0 ? _c : []);
     });
 }
+function getEmbyUserMusicPlaylist(page) {
+    return embyService
+        .get("/emby/UserItems", {
+        params: {
+            StartIndex: (page - 1) * EMBY_PAGE_SIZE,
+            Limit: EMBY_PAGE_SIZE,
+            IncludeItemTypes: "Playlist",
+            Recursive: true,
+            EnableImageTypes: "Primary",
+            Fields: "BasicSyncInfo,Overview,DateCreated",
+        },
+    })
+        .then((resp) => {
+        var _a, _b;
+        return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
+    });
+}
+function getEmbyAlbumsByGenre(genreId, page) {
+    return embyService
+        .get("/emby/UserItems", {
+        params: {
+            StartIndex: (page - 1) * EMBY_PAGE_SIZE,
+            Limit: EMBY_PAGE_SIZE,
+            IncludeItemTypes: "MusicAlbum",
+            Recursive: true,
+            GenreIds: genreId,
+            EnableImageTypes: "Primary",
+            Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
+        },
+    })
+        .then((resp) => {
+        var _a, _b;
+        return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
+    });
+}
+function getEmbyAlbumsByParent(parentId, page) {
+    return embyService
+        .get("/emby/UserItems", {
+        params: {
+            StartIndex: (page - 1) * EMBY_PAGE_SIZE,
+            Limit: EMBY_PAGE_SIZE,
+            IncludeItemTypes: "MusicAlbum",
+            Recursive: true,
+            ParentId: parentId,
+            EnableImageTypes: "Primary",
+            Fields: "BasicSyncInfo,Overview,ProductionYear,DateCreated",
+        },
+    })
+        .then((resp) => {
+        var _a, _b;
+        return Promise.resolve((_b = (_a = resp.data) === null || _a === void 0 ? void 0 : _a.Items) !== null && _b !== void 0 ? _b : []);
+    });
+}
+function formatEmbyPlaylistItem(playlistItem, username) {
+    var _a, _b, _c, _d;
+    return {
+        id: playlistItem.Id,
+        artist: username,
+        title: playlistItem.Name,
+        artwork: getEmbyCoverArtUrl(playlistItem.Id, (_a = playlistItem.ImageTags) === null || _a === void 0 ? void 0 : _a.Primary),
+        playCount: (_c = (_b = playlistItem.UserData) === null || _b === void 0 ? void 0 : _b.PlayCount) !== null && _c !== void 0 ? _c : 0,
+        createTime: playlistItem.DateCreated,
+        description: (_d = playlistItem.Overview) !== null && _d !== void 0 ? _d : "",
+    };
+}
+function formatEmbyAlbumItem(playlistItem) {
+    var _a, _b, _c;
+    return {
+        id: playlistItem.Id,
+        artist: playlistItem.AlbumArtist,
+        title: playlistItem.Name,
+        artwork: getEmbyCoverArtUrl(playlistItem.PrimaryImageItemId, playlistItem.PrimaryImageTag),
+        playCount: (_b = (_a = playlistItem.UserData) === null || _a === void 0 ? void 0 : _a.PlayCount) !== null && _b !== void 0 ? _b : 0,
+        createTime: playlistItem.DateCreated,
+        description: (_c = playlistItem.Overview) !== null && _c !== void 0 ? _c : "",
+    };
+}
+function getEmbyCoverArtUrl(imgId, imgTag) {
+    const urlObj = new URL(getConfigEmbyBaseUrl());
+    urlObj.pathname = `/emby/Items/${imgId}/Images/Primary`;
+    urlObj.searchParams.append("tag", imgTag);
+    urlObj.searchParams.append("maxHeight", "300");
+    urlObj.searchParams.append("maxWidth", "300");
+    urlObj.searchParams.append("quality", "90");
+    return urlObj.toString();
+}
 module.exports = {
     platform: EMBY_PLUGIN_NAME,
     version: EMBY_PLUGIN_VERSION,
@@ -448,16 +535,16 @@ module.exports = {
     async getRecommendSheetTags() {
         var _a, _b;
         const musicLibsRequest = getEmbyUserMusicLibraries();
-        const generesRequest = getEmbyMusicGenres(30);
-        const data = await Promise.all([musicLibsRequest, generesRequest]);
-        const libsData = (_a = data[0]) === null || _a === void 0 ? void 0 : _a.map((it) => ({
+        const genresRequest = getEmbyMusicGenres(30);
+        const data = await Promise.all([musicLibsRequest, genresRequest]);
+        const libsData = (_a = data === null || data === void 0 ? void 0 : data[0]) === null || _a === void 0 ? void 0 : _a.map((it) => ({
             id: it.Id,
             title: it.Name,
         }));
-        const generesData = (_b = data[1]) === null || _b === void 0 ? void 0 : _b.map((it) => ({
+        const genresData = (_b = data === null || data === void 0 ? void 0 : data[1]) === null || _b === void 0 ? void 0 : _b.map((it) => ({
             id: it.Id,
             title: it.Name,
-            type: "genere",
+            type: "genre",
         }));
         return {
             pinned: libsData,
@@ -468,15 +555,35 @@ module.exports = {
                 },
                 {
                     title: "风格",
-                    data: generesData,
+                    data: genresData,
                 },
             ],
         };
     },
     async getRecommendSheetsByTag(tagItem, page) {
+        let sheets = null;
+        if (!tagItem || tagItem.id.length <= 0) {
+            const username = getConfigEmbyUsername();
+            sheets = await getEmbyUserMusicPlaylist(page);
+            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map((it) => {
+                return Object.assign(Object.assign({}, formatEmbyPlaylistItem(it, username)), { sheetType: "playlist" });
+            });
+        }
+        else if (tagItem.type === "genre") {
+            sheets = await getEmbyAlbumsByGenre(tagItem.id, page);
+            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map((it) => {
+                return Object.assign(Object.assign({}, formatEmbyAlbumItem(it)), { sheetType: "album" });
+            });
+        }
+        else {
+            sheets = await getEmbyAlbumsByParent(tagItem.id, page);
+            sheets = sheets === null || sheets === void 0 ? void 0 : sheets.map((it) => {
+                return Object.assign(Object.assign({}, formatEmbyAlbumItem(it)), { sheetType: "album" });
+            });
+        }
         return {
-            isEnd: true,
-            data: [],
+            isEnd: sheets == null ? true : sheets.length < EMBY_PAGE_SIZE,
+            data: sheets,
         };
     },
 };
