@@ -588,12 +588,12 @@ module.exports = {
         urlObj.searchParams.append("AudioCodec", "aac");
         urlObj.searchParams.append("EnableRedirection", "true");
         urlObj.searchParams.append("EnableRemoteMedia", "false");
-        await reportEmbyMusicStartPlay(musicItem.id);
         return {
             url: urlObj.toString(),
         };
     },
     async getMusicInfo(musicItem) {
+        await reportEmbyMusicStartPlay(musicItem.id);
         return musicItem;
     },
     async getLyric(musicItem) {

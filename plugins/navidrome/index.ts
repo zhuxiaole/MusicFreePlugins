@@ -795,9 +795,6 @@ module.exports = {
     urlObj.searchParams.append("maxBitRate", maxBitRate);
     urlObj.searchParams.append("format", format);
 
-    // 播放记录
-    scrobble(musicItem.id);
-
     return {
       url: urlObj.toString(),
     };
@@ -805,6 +802,9 @@ module.exports = {
   // 获取歌曲详情
   async getMusicInfo(musicItem) {
     const data = (await ndService.get(`/api/song/${musicItem.id}`)).data;
+
+    // 播放记录
+    await scrobble(musicItem.id);
 
     return formatMusicItem(data);
   },

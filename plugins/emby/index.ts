@@ -631,15 +631,15 @@ module.exports = {
     urlObj.searchParams.append("EnableRedirection", "true");
     urlObj.searchParams.append("EnableRemoteMedia", "false");
 
-    // 播放记录
-    await reportEmbyMusicStartPlay(musicItem.id);
-
     return {
       url: urlObj.toString(),
     };
   },
   // 获取歌曲详情
   async getMusicInfo(musicItem) {
+    // 播放记录
+    await reportEmbyMusicStartPlay(musicItem.id);
+
     return musicItem;
   },
   // 获取歌词

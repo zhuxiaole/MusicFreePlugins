@@ -635,13 +635,13 @@ module.exports = {
         urlObj.searchParams.append("id", musicItem.id);
         urlObj.searchParams.append("maxBitRate", maxBitRate);
         urlObj.searchParams.append("format", format);
-        scrobble(musicItem.id);
         return {
             url: urlObj.toString(),
         };
     },
     async getMusicInfo(musicItem) {
         const data = (await ndService.get(`/api/song/${musicItem.id}`)).data;
+        await scrobble(musicItem.id);
         return formatMusicItem(data);
     },
     async getAlbumInfo(albumItem, page) {
