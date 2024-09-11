@@ -385,12 +385,6 @@ async function getNdAlbumSongList(albumId, page) {
         .catch((err) => Promise.reject(err));
 }
 function formatMusicItem(it) {
-    var _a;
-    const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
-    let rawLrc = "";
-    if (lyricsArr && lyricsArr.length > 0) {
-        rawLrc = convertToLRC((_a = lyricsArr === null || lyricsArr === void 0 ? void 0 : lyricsArr[0]) === null || _a === void 0 ? void 0 : _a.line);
-    }
     return {
         id: it.id,
         title: it.title,
@@ -400,16 +394,9 @@ function formatMusicItem(it) {
         albumid: it.albumId,
         artwork: getNdCoverArtUrl(it.id),
         duration: it.duration,
-        rawLrc: rawLrc,
     };
 }
 function formatPlaylistMusicItem(it) {
-    var _a;
-    const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
-    let rawLrc = "";
-    if (lyricsArr && lyricsArr.length > 0) {
-        rawLrc = convertToLRC((_a = lyricsArr === null || lyricsArr === void 0 ? void 0 : lyricsArr[0]) === null || _a === void 0 ? void 0 : _a.line);
-    }
     return {
         id: it.mediaFileId,
         title: it.title,
@@ -419,7 +406,6 @@ function formatPlaylistMusicItem(it) {
         albumid: it.albumId,
         artwork: getNdCoverArtUrl(it.mediaFileId),
         duration: it.duration,
-        rawLrc: rawLrc,
     };
 }
 function formatAlbumItem(it) {
@@ -521,7 +507,7 @@ async function scrobble(id) {
         },
     });
 }
-function convertToLRC(jsonLyrics) {
+function convertNdLyricToLRC(jsonLyrics) {
     let lrcLyrics = "";
     jsonLyrics === null || jsonLyrics === void 0 ? void 0 : jsonLyrics.forEach((lyric) => {
         const minutes = Math.floor(lyric.start / 60000);
@@ -670,7 +656,7 @@ module.exports = {
         })).data;
         const lyricLines = (_d = (_c = (_b = (_a = data["subsonic-response"]) === null || _a === void 0 ? void 0 : _a.lyricsList) === null || _b === void 0 ? void 0 : _b.structuredLyrics) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.line;
         return {
-            rawLrc: convertToLRC(lyricLines),
+            rawLrc: convertNdLyricToLRC(lyricLines),
         };
     },
     async getRecommendSheetTags() {

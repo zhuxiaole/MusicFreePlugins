@@ -485,11 +485,6 @@ async function getNdAlbumSongList(albumId, page) {
 }
 
 function formatMusicItem(it) {
-  const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
-  let rawLrc = "";
-  if (lyricsArr && lyricsArr.length > 0) {
-    rawLrc = convertToLRC(lyricsArr?.[0]?.line);
-  }
   return {
     id: it.id,
     title: it.title,
@@ -499,16 +494,10 @@ function formatMusicItem(it) {
     albumid: it.albumId,
     artwork: getNdCoverArtUrl(it.id),
     duration: it.duration,
-    rawLrc: rawLrc,
   };
 }
 
 function formatPlaylistMusicItem(it) {
-  const lyricsArr = it.lyrics ? JSON.parse(it.lyrics) : null;
-  let rawLrc = "";
-  if (lyricsArr && lyricsArr.length > 0) {
-    rawLrc = convertToLRC(lyricsArr?.[0]?.line);
-  }
   return {
     id: it.mediaFileId,
     title: it.title,
@@ -518,7 +507,6 @@ function formatPlaylistMusicItem(it) {
     albumid: it.albumId,
     artwork: getNdCoverArtUrl(it.mediaFileId),
     duration: it.duration,
-    rawLrc: rawLrc,
   };
 }
 
@@ -638,7 +626,7 @@ async function scrobble(id) {
   });
 }
 
-function convertToLRC(jsonLyrics) {
+function convertNdLyricToLRC(jsonLyrics) {
   let lrcLyrics = "";
 
   jsonLyrics?.forEach((lyric) => {
@@ -838,7 +826,7 @@ module.exports = {
       data["subsonic-response"]?.lyricsList?.structuredLyrics?.[0]?.line;
 
     return {
-      rawLrc: convertToLRC(lyricLines),
+      rawLrc: convertNdLyricToLRC(lyricLines),
     };
   },
   // 获取推荐歌单标签

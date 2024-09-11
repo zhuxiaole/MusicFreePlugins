@@ -49,13 +49,13 @@ const emby = require("../plugins/emby/index");
 //     console.log(data);
 //   });
 
-emby
-  .getMediaSource({
-    id: "111649",
-  })
-  .then((data) => {
-    console.log(data);
-  });
+// emby
+//   .getMediaSource({
+//     id: "111649",
+//   })
+//   .then((data) => {
+//     console.log(data);
+//   });
 
 // emby
 //   .getMediaSource(
@@ -67,3 +67,11 @@ emby
 //   .then((data) => {
 //     console.log(data);
 //   });
+
+emby
+  .getLyric({
+    id: "111649",
+  })
+  .then((data) => {
+    console.log(data);
+  });

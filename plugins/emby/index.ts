@@ -490,8 +490,12 @@ async function getEmbyMusicListByParent(parentId, page) {
 
 async function getEmbyMusicInfo(musicId) {
   // 会经过拦截器重新拼接url
-  const resp = await embyService.get(`/emby/UserGetItem/${musicId}`);
-  return resp.data ?? {};
+  return await embyService
+    .get(`/emby/UserGetItem/${musicId}`)
+    .then((resp) => {
+      return Promise.resolve(resp.data ?? {});
+    })
+    .catch((err) => Promise.reject(err));
 }
 
 async function reportEmbyMusicStartPlay(musicId: string) {
@@ -637,6 +641,15 @@ module.exports = {
   // 获取歌曲详情
   async getMusicInfo(musicItem) {
     return musicItem;
+  },
+  // 获取歌词
+  async getLyric(musicItem) {
+    const data = await getEmbyMusicInfo(musicItem.id);
+    const streams = data.MediaStreams;
+
+    return {
+      rawLrc: streams?.filter((it) => it.Codec === "text")?.[0]?.Extradata,
+    };
   },
   // 获取推荐歌单标签
   async getRecommendSheetTags() {

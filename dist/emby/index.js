@@ -465,6 +465,15 @@ async function getEmbyMusicListByParent(parentId, page) {
     })
         .catch((err) => Promise.reject(err));
 }
+async function getEmbyMusicInfo(musicId) {
+    return await embyService
+        .get(`/emby/UserGetItem/${musicId}`)
+        .then((resp) => {
+        var _a;
+        return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
+    })
+        .catch((err) => Promise.reject(err));
+}
 async function reportEmbyMusicStartPlay(musicId) {
     return await embyService
         .post("/emby/Sessions/Playing", {
@@ -586,6 +595,14 @@ module.exports = {
     },
     async getMusicInfo(musicItem) {
         return musicItem;
+    },
+    async getLyric(musicItem) {
+        var _a, _b;
+        const data = await getEmbyMusicInfo(musicItem.id);
+        const streams = data.MediaStreams;
+        return {
+            rawLrc: (_b = (_a = streams === null || streams === void 0 ? void 0 : streams.filter((it) => it.Codec === "text")) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.Extradata,
+        };
     },
     async getRecommendSheetTags() {
         var _a, _b;
