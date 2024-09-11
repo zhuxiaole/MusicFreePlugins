@@ -473,6 +473,21 @@ async function getEmbyMusicInfo(musicId) {
   return resp.data ?? {};
 }
 
+async function reportEmbyMusicStartPlay(musicId: string) {
+  return await embyService
+    .post("/emby/Sessions/Playing", {
+      ItemId: musicId,
+      PlayMethod: "Direct",
+      PlaySessionId: new Date().toString(),
+    })
+    .then((resp) => {
+      return Promise.resolve(resp.data ?? {});
+    })
+    .catch((err) => {
+      return Promise.reject(err);
+    });
+}
+
 function formatEmbyPlaylistItem(playlistItem, username) {
   return {
     id: playlistItem.Id,
@@ -594,17 +609,11 @@ module.exports = {
     urlObj.searchParams.append("EnableRedirection", "true");
     urlObj.searchParams.append("EnableRemoteMedia", "false");
 
+    // 播放记录
+    await reportEmbyMusicStartPlay(musicItem.id);
+
     return {
       url: urlObj.toString(),
-    };
-  },
-  // 获取歌曲详情
-  async getMusicInfo(musicItem) {
-    const musicInfo = await getEmbyMusicInfo(musicItem.id);
-    return {
-      ...formatEmbyMusicItem(musicInfo),
-      rawLrc: musicInfo.MediaStreams?.filter((it) => it.Codec === "text")?.[0]
-        ?.Extradata,
     };
   },
   // 获取推荐歌单标签

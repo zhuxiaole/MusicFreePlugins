@@ -504,10 +504,20 @@ function getEmbyMusicListByParent(parentId, page) {
         return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
     });
 }
-async function getEmbyMusicInfo(musicId) {
-    var _a;
-    const resp = await embyService.get(`/emby/UserGetItem/${musicId}`);
-    return (_a = resp.data) !== null && _a !== void 0 ? _a : {};
+async function reportEmbyMusicStartPlay(musicId) {
+    return await embyService
+        .post("/emby/Sessions/Playing", {
+        ItemId: musicId,
+        PlayMethod: "Direct",
+        PlaySessionId: new Date().toString(),
+    })
+        .then((resp) => {
+        var _a;
+        return Promise.resolve((_a = resp.data) !== null && _a !== void 0 ? _a : {});
+    })
+        .catch((err) => {
+        return Promise.reject(err);
+    });
 }
 function formatEmbyPlaylistItem(playlistItem, username) {
     var _a, _b, _c;
@@ -608,14 +618,10 @@ module.exports = {
         urlObj.searchParams.append("AudioCodec", "aac");
         urlObj.searchParams.append("EnableRedirection", "true");
         urlObj.searchParams.append("EnableRemoteMedia", "false");
+        await reportEmbyMusicStartPlay(musicItem.id);
         return {
             url: urlObj.toString(),
         };
-    },
-    async getMusicInfo(musicItem) {
-        var _a, _b, _c;
-        const musicInfo = await getEmbyMusicInfo(musicItem.id);
-        return Object.assign(Object.assign({}, formatEmbyMusicItem(musicInfo)), { rawLrc: (_c = (_b = (_a = musicInfo.MediaStreams) === null || _a === void 0 ? void 0 : _a.filter((it) => it.Codec === "text")) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.Extradata });
     },
     async getRecommendSheetTags() {
         var _a, _b;
