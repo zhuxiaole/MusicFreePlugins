@@ -1,0 +1,9 @@
+{
+  "pluginName": "Emby",
+  "pluginVersion": "0.0.1",
+  "entry": "index.ts",
+  "appVersion": ">0.1.0-alpha.0",
+  "srcUrl": "https://registry.npmmirror.com/musicfree-plugins/latest/files/emby/index.js",
+  "cacheControl": "no-cache",
+  "dist": false
+}

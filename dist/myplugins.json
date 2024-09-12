@@ -21,11 +21,6 @@
       "version": "0.1.2"
     },
     {
-      "name": "Emby",
-      "url": "https://registry.npmmirror.com/musicfree-plugins/latest/files/emby/index.js",
-      "version": "0.0.1"
-    },
-    {
       "name": "Navidrome",
       "url": "https://registry.npmmirror.com/musicfree-plugins/latest/files/navidrome/index.js",
       "version": "0.0.5"

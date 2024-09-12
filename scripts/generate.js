@@ -1,78 +1,78 @@
-const fs = require('fs/promises');
-const path = require('path');
-const rimraf = require('rimraf');
+const fs = require("fs/promises");
+const path = require("path");
 
-const basePath = path.resolve(__dirname, '..');
-const distPath = path.resolve(__dirname, '../dist');
-
-/// <reference types="../types/global" />
-global.env = {
-    getUserVariables: () => {
-      return {
-        url: "",
-        username: "",
-        password: "",
-      };
-    },
-    debug: true,
-};
+const basePath = path.resolve(__dirname, "..");
+const distPath = path.resolve(__dirname, "../dist");
+const pluginsSourcePath = path.resolve(__dirname, "../plugins");
 
 async function run() {
-    console.log('生成json文件...');
+  console.log("生成json文件...");
 
-    const pluginPath = path.resolve(distPath, 'plugins.json');
-    const mypluginsPath = path.resolve(distPath, 'myplugins.json');
-    const distPackagePath = path.resolve(distPath, 'package.json')
+  const distPluginPath = path.resolve(distPath, "plugins.json");
+  const distMypluginsPath = path.resolve(distPath, "myplugins.json");
+  const packagePath = path.resolve(basePath, "package.json");
+  const distPackagePath = path.resolve(distPath, "package.json");
 
-    await rimraf(pluginPath);
-    await rimraf(mypluginsPath);
-    await rimraf(distPackagePath);
+  const output = {
+    plugins: [],
+  };
 
-    const bundledPlugins = await fs.readdir(distPath);
+  const distDir = await fs.readdir(distPath);
 
-    const output = {
-        plugins: []
-    };
+  await Promise.all(distDir.map(async (file) => {
+    const stat = await fs.stat(path.resolve(distPath, file));
 
-    await Promise.all(bundledPlugins.map(async (file) => {
-        const filePath = path.resolve(distPath, file);
-        const stat = await fs.stat(filePath);
+    if (stat.isDirectory()) {
+      const pluginInfoPath = path.resolve(pluginsSourcePath, file, `${file}.json`);
+      await fs.stat(pluginInfoPath);
+      const pluginInfo = JSON.parse(await fs.readFile(pluginInfoPath));
+      if (pluginInfo.dist ?? true) {
+        output.plugins.push({
+          name: pluginInfo.pluginName,
+          url: pluginInfo.srcUrl,
+          version: pluginInfo.pluginVersion,
+        });
+      }
+    }
+}));
 
-        if (stat.isDirectory()) {
-            const targetPluginPath = path.resolve(filePath, 'index.js');
-            await fs.stat(targetPluginPath);
-            const jsItem = require(targetPluginPath);
+  // 写入 plugins.json
+  await fs.writeFile(distPluginPath, JSON.stringify(output, "", "  "));
 
-            if (jsItem && jsItem.platform) {
-                output.plugins.push({
-                    name: jsItem.platform,
-                    url: jsItem.srcUrl,
-                    version: jsItem.version,
-                });
-            }
-        }
-    }));
+  // 写入 myplugins.json
+  const mypluginBasePath = path.resolve(basePath, "myplugins-base.json");
+  await fs.stat(mypluginBasePath);
+  const mypluginsBase = await fs.readFile(mypluginBasePath, "utf-8");
+  const mypluginsBaseJson = JSON.parse(mypluginsBase);
+  mypluginsBaseJson.plugins.push(...output.plugins);
 
-    // 写入 plugins.json
-    await fs.writeFile(pluginPath, JSON.stringify(output,"","  "));
+  await fs.writeFile(
+    distMypluginsPath,
+    JSON.stringify(mypluginsBaseJson, "", "  ")
+  );
 
-    // 写入 myplugins.json
-    const mypluginBasePath = path.resolve(basePath, 'myplugins-base.json');
-    await fs.stat(mypluginBasePath);
-    const mypluginsBase = await fs.readFile(mypluginBasePath, 'utf-8');
-    const mypluginsBaseJson = JSON.parse(mypluginsBase);
-    mypluginsBaseJson.plugins.push(...output.plugins);
+  // 写入 dist/package.json 信息
+  await fs.stat(packagePath);
+  const packageInfo = JSON.parse(await fs.readFile(packagePath));
+  const pubPackageInfo = {
+    name: "musicfree-plugins",
+    version: packageInfo.version,
+    description: packageInfo.description,
+    author: packageInfo.author
+  };
 
-    await fs.writeFile(mypluginsPath, JSON.stringify(mypluginsBaseJson,"","  "));
+  await fs.writeFile(
+    distPackagePath,
+    JSON.stringify(pubPackageInfo, "", "  ")
+  );
 
-    // 复制 publish-package.json 至 dist/package.json
-    await fs.copyFile(path.resolve(basePath, 'publish-package.json'), distPackagePath);
+  // 复制 README.md 至 dist/README.md
+  await fs.copyFile(
+    path.resolve(basePath, "README.md"),
+    path.resolve(distPath, "README.md")
+  );
 
-    // 复制 README.md 至 dist/README.md
-    await fs.copyFile(path.resolve(basePath, 'README.md'), path.resolve(distPath, 'README.md'));
-
-    console.log('done√');
+  console.log("done√");
 }
-
 
 run();

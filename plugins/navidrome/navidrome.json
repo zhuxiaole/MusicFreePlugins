@@ -1,0 +1,11 @@
+{
+  "pluginName": "Navidrome",
+  "pluginVersion": "0.0.5",
+  "entry": "index.ts",
+  "appVersion": ">0.1.0-alpha.0",
+  "srcUrl": "https://registry.npmmirror.com/musicfree-plugins/latest/files/navidrome/index.js",
+  "cacheControl": "no-cache",
+  "subsonicApiC": "MusicFree-PigNavidrome",
+  "subsonicApiV": "1.14.0",
+  "subsonicApiF": "json"
+}

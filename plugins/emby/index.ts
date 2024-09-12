@@ -1,13 +1,8 @@
+import config from "../config.json";
+import pluginInfo from "./emby.json";
 const embyAxios = require("axios");
 import uuid from "react-native-uuid";
 import storeManager from "../../common/storeManager";
-
-const EMBY_DEVICE_NAME = "MusicFree";
-const EMBY_PLUGIN_NAME = "Emby";
-const EMBY_PLUGIN_VERSION = "0.0.1";
-const EMBY_PAGE_SIZE = 25;
-const EMBY_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
 
 // 唯一token请求
 let embySingletonTokenRequest = null;
@@ -125,7 +120,7 @@ function isEmbyUrl(baseUrl, url) {
 // axios实例
 const embyService = embyAxios.create({
   timeout: 30000,
-  headers: { "User-Agent": EMBY_UA },
+  headers: { "User-Agent": config.userAgent },
 });
 
 // 请求拦截器
@@ -143,10 +138,10 @@ embyService.interceptors.request.use(
     if (ifEmbyUrl) {
       const deviceId = await checkAndGetEmbyDeviceId(config.baseURL);
 
-      const authInfoClinet = `Emby Client=MusicFree-${EMBY_PLUGIN_NAME}-Plugin`;
-      const authInfoDevice = `Device=${EMBY_DEVICE_NAME}`;
+      const authInfoClinet = `Emby Client=MusicFree-${pluginInfo.pluginName}-Plugin`;
+      const authInfoDevice = `Device=${config.appName}`;
       const authInfoDeviceId = `DeviceId=${deviceId}`;
-      const authInfoVersion = `Version=${EMBY_PLUGIN_VERSION}`;
+      const authInfoVersion = `Version=${pluginInfo.pluginVersion}`;
       let authHeader = `${authInfoClinet}, ${authInfoDevice}, ${authInfoDeviceId}, ${authInfoVersion}`;
 
       if (!ifLoginUrl) {
@@ -344,8 +339,8 @@ async function getEmbyUserMusicPlaylist(page) {
   return await embyService
     .get("/emby/UserItems", {
       params: {
-        StartIndex: (page - 1) * EMBY_PAGE_SIZE,
-        Limit: EMBY_PAGE_SIZE,
+        StartIndex: (page - 1) * config.pageSize,
+        Limit: config.pageSize,
         IncludeItemTypes: "Playlist",
         Tags: "music", // 只获取音乐歌单
         Recursive: true,
@@ -365,8 +360,8 @@ async function getEmbyAlbumsByGenre(genreId, page) {
   return await embyService
     .get("/emby/UserItems", {
       params: {
-        StartIndex: (page - 1) * EMBY_PAGE_SIZE,
-        Limit: EMBY_PAGE_SIZE,
+        StartIndex: (page - 1) * config.pageSize,
+        Limit: config.pageSize,
         IncludeItemTypes: "MusicAlbum",
         Recursive: true,
         GenreIds: genreId,
@@ -386,8 +381,8 @@ async function getEmbyAlbumsByParent(parentId, page) {
   return await embyService
     .get("/emby/UserItems", {
       params: {
-        StartIndex: (page - 1) * EMBY_PAGE_SIZE,
-        Limit: EMBY_PAGE_SIZE,
+        StartIndex: (page - 1) * config.pageSize,
+        Limit: config.pageSize,
         IncludeItemTypes: "MusicAlbum",
         Recursive: true,
         ParentId: parentId,
@@ -407,8 +402,8 @@ async function getEmbyMusicListByParent(parentId, page) {
   return await embyService
     .get("/emby/UserItems", {
       params: {
-        StartIndex: (page - 1) * EMBY_PAGE_SIZE,
-        Limit: EMBY_PAGE_SIZE,
+        StartIndex: (page - 1) * config.pageSize,
+        Limit: config.pageSize,
         ParentId: parentId,
         MediaTypes: "Audio",
         EnableUserData: true,
@@ -511,13 +506,12 @@ type EmbyAuthInfo = {
 };
 
 module.exports = {
-  platform: EMBY_PLUGIN_NAME,
-  version: EMBY_PLUGIN_VERSION,
-  author: "猪小乐",
-  appVersion: ">0.1.0-alpha.0",
-  srcUrl:
-    "https://registry.npmmirror.com/musicfree-plugins/latest/files/emby/index.js",
-  cacheControl: "no-cache",
+  platform: pluginInfo.pluginName,
+  version: pluginInfo.pluginVersion,
+  author: config.author,
+  appVersion: pluginInfo.appVersion,
+  srcUrl: pluginInfo.srcUrl,
+  cacheControl: pluginInfo.cacheControl,
   userVariables: [
     {
       key: "url",
@@ -549,12 +543,15 @@ module.exports = {
       (await getStoredEmbyAuthInfo(baseUrl)).embyUserId
     );
     urlObj.searchParams.append("X-Emby-Device-Id", deviceId);
-    urlObj.searchParams.append("X-Emby-Device-Name", EMBY_DEVICE_NAME);
+    urlObj.searchParams.append("X-Emby-Device-Name", config.appName);
     urlObj.searchParams.append(
       "X-Emby-Client",
-      `MusicFree-${EMBY_PLUGIN_NAME}-Plugin`
+      `MusicFree-${pluginInfo.pluginName}-Plugin`
     );
-    urlObj.searchParams.append("X-Emby-Client-Version", EMBY_PLUGIN_VERSION);
+    urlObj.searchParams.append(
+      "X-Emby-Client-Version",
+      pluginInfo.pluginVersion
+    );
     urlObj.searchParams.append(
       "Container",
       "opus,mp3|mp3,mp2,mp3|mp2,aac|aac,m4a|aac,mp4|aac,flac,webma,webm,wav|PCM_S16LE,wav|PCM_S24LE,ogg"
@@ -632,7 +629,7 @@ module.exports = {
     }
 
     return {
-      isEnd: sheets == null ? true : sheets.length < EMBY_PAGE_SIZE,
+      isEnd: sheets == null ? true : sheets.length < config.pageSize,
       data: sheets,
     };
   },
@@ -642,7 +639,7 @@ module.exports = {
     const musicList = sheetInfo.Items?.map(formatEmbyMusicItem);
 
     return {
-      isEnd: musicList?.length ?? 0 < EMBY_PAGE_SIZE,
+      isEnd: musicList?.length ?? 0 < config.pageSize,
       musicList: musicList,
       sheetItem: {
         worksNums: sheetInfo.TotalRecordCount ?? 0,

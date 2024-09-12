@@ -1,15 +1,8 @@
+import config from "../config.json";
+import pluginInfo from "./navidrome.json";
 const ndAxios = require("axios");
 const ndCryptoJs = require("crypto-js");
 import storeManager from "../../common/storeManager";
-
-const ND_PLUGIN_VERSION = "0.0.5";
-const ND_PAGE_SIZE = 25;
-const ND_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
-
-const SUBSONIC_API_C = "MusicFree-PigNavidrome";
-const SUBSONIC_API_V = "1.14.0";
-const SUBSONIC_API_F = "json";
 
 // 唯一token请求
 let ndSingletonTokenRequest = null;
@@ -115,7 +108,7 @@ function isNdUrl(baseUrl, url) {
 // axios实例
 const ndService = ndAxios.create({
   timeout: 30000,
-  headers: { "User-Agent": ND_UA },
+  headers: { "User-Agent": config.userAgent },
 });
 
 // 请求拦截器
@@ -163,9 +156,9 @@ ndService.interceptors.request.use(
           u: authInfo.ndUsername,
           s: authInfo.subsonicSalt,
           t: authInfo.subsonicToken,
-          c: SUBSONIC_API_C,
-          v: SUBSONIC_API_V,
-          f: SUBSONIC_API_F,
+          c: pluginInfo.subsonicApiC,
+          v: pluginInfo.subsonicApiV,
+          f: pluginInfo.subsonicApiF,
           ...config.params,
         };
       }
@@ -282,9 +275,9 @@ function getSubsonicURL(pathname) {
     "t",
     ndCryptoJs.MD5(`${password}${salt}`).toString(ndCryptoJs.enc.Hex)
   );
-  urlObj.searchParams.append("c", SUBSONIC_API_C);
-  urlObj.searchParams.append("v", SUBSONIC_API_V);
-  urlObj.searchParams.append("f", SUBSONIC_API_F);
+  urlObj.searchParams.append("c", pluginInfo.subsonicApiC);
+  urlObj.searchParams.append("v", pluginInfo.subsonicApiV);
+  urlObj.searchParams.append("f", pluginInfo.subsonicApiF);
   return urlObj;
 }
 
@@ -297,14 +290,14 @@ function getNdCoverArtUrl(itemId) {
 
 // 获取navidrome歌单列表
 async function getNdPlaylists(query, sort, page) {
-  const startIndex = (page - 1) * ND_PAGE_SIZE;
+  const startIndex = (page - 1) * config.pageSize;
 
   return (
     await ndService.get("/api/playlist", {
       params: {
         q: query,
         _start: startIndex,
-        _end: startIndex + ND_PAGE_SIZE,
+        _end: startIndex + config.pageSize,
         _sort: sort,
       },
     })
@@ -357,10 +350,10 @@ async function getNdAlbumList(type, page, size) {
 
 // 获取navidrome相关（作者、风格）专辑列表
 async function getNdRelatedAlbumList(artist_id, genre_id, page, order, sort) {
-  const startIndex = (page - 1) * ND_PAGE_SIZE;
+  const startIndex = (page - 1) * config.pageSize;
   const params = {
     _start: startIndex,
-    _end: startIndex + ND_PAGE_SIZE,
+    _end: startIndex + config.pageSize,
     _order: order,
     _sort: sort,
   };
@@ -378,13 +371,13 @@ async function getNdRelatedAlbumList(artist_id, genre_id, page, order, sort) {
 
 // 获取navidrome歌单中的歌曲列表
 async function getNdPlaylistTracks(playlistId, page, order = "", sort = "") {
-  const startIndex = (page - 1) * ND_PAGE_SIZE;
+  const startIndex = (page - 1) * config.pageSize;
   return (
     await ndService.get(`/api/playlist/${playlistId}/tracks`, {
       params: {
         playlist_id: playlistId,
         _start: startIndex,
-        _end: startIndex + ND_PAGE_SIZE,
+        _end: startIndex + config.pageSize,
         _order: order,
         _sort: sort,
       },
@@ -404,13 +397,13 @@ async function getNdAlbumInfo(id) {
 
 // 获取navidrome专辑歌曲列表
 async function getNdAlbumSongList(albumId, page) {
-  const startIndex = (page - 1) * ND_PAGE_SIZE;
+  const startIndex = (page - 1) * config.pageSize;
   return await ndService
     .get("/api/song", {
       params: {
         album_id: albumId,
         _start: startIndex,
-        _end: startIndex + ND_PAGE_SIZE,
+        _end: startIndex + config.pageSize,
         _order: "ASC",
         _sort: "album",
       },
@@ -484,19 +477,19 @@ function formatPlaylistItem(it) {
 }
 
 async function searchMusic(query, page) {
-  const startIndex = (page - 1) * ND_PAGE_SIZE;
+  const startIndex = (page - 1) * config.pageSize;
   const data = (
     await ndService.get("/api/song", {
       params: {
         title: query,
         _start: startIndex,
-        _end: startIndex + ND_PAGE_SIZE,
+        _end: startIndex + config.pageSize,
       },
     })
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
+    isEnd: data == null ? true : data.length < config.pageSize,
     data: data?.map(formatMusicItem) ?? [],
   };
 }
@@ -505,7 +498,7 @@ async function searchSheet(query, page) {
   const data = await getNdPlaylists(query, "", page);
 
   return {
-    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
+    isEnd: data == null ? true : data.length < config.pageSize,
     data:
       data?.map((it) => {
         return {
@@ -521,8 +514,8 @@ async function searchAlbum(query, page) {
     await ndService.get("/rest/search3", {
       params: {
         query,
-        albumCount: ND_PAGE_SIZE,
-        albumOffset: (page - 1) * ND_PAGE_SIZE,
+        albumCount: config.pageSize,
+        albumOffset: (page - 1) * config.pageSize,
         songCount: 0,
         artistCount: 0,
       },
@@ -532,25 +525,25 @@ async function searchAlbum(query, page) {
   const albums = data["subsonic-response"]?.searchResult3?.album;
 
   return {
-    isEnd: albums == null ? true : albums.length < ND_PAGE_SIZE,
+    isEnd: albums == null ? true : albums.length < config.pageSize,
     data: albums?.map(formatAlbumItem) ?? [],
   };
 }
 
 async function searchArtist(query, page) {
-  const startIndex = (page - 1) * ND_PAGE_SIZE;
+  const startIndex = (page - 1) * config.pageSize;
   const data = (
     await ndService.get("/api/artist", {
       params: {
         name: query,
         _start: startIndex,
-        _end: startIndex + ND_PAGE_SIZE,
+        _end: startIndex + config.pageSize,
       },
     })
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
+    isEnd: data == null ? true : data.length < config.pageSize,
     data: data?.map(formatArtistItem) ?? [],
   };
 }
@@ -593,19 +586,19 @@ async function getArtistAlbums(artistItem, page) {
   );
 
   return {
-    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
+    isEnd: data == null ? true : data.length < config.pageSize,
     data: data?.map(formatAlbumItem) ?? [],
   };
 }
 
 async function getArtistMusics(artistItem, page) {
-  const startIndex = (page - 1) * ND_PAGE_SIZE;
+  const startIndex = (page - 1) * config.pageSize;
   const data = (
     await ndService.get("/api/song", {
       params: {
         artist_id: artistItem.id,
         _start: startIndex,
-        _end: startIndex + ND_PAGE_SIZE,
+        _end: startIndex + config.pageSize,
         _order: "ASC",
         _sort: "title",
       },
@@ -613,7 +606,7 @@ async function getArtistMusics(artistItem, page) {
   ).data;
 
   return {
-    isEnd: data == null ? true : data.length < ND_PAGE_SIZE,
+    isEnd: data == null ? true : data.length < config.pageSize,
     data: data?.map(formatMusicItem) ?? [],
   };
 }
@@ -646,7 +639,7 @@ async function getNdAlbumSheetInfo(albumItem, page) {
   const song = datas[1];
 
   return {
-    isEnd: song == null ? true : song.length < ND_PAGE_SIZE,
+    isEnd: song == null ? true : song.length < config.pageSize,
     musicList: song?.map(formatMusicItem) ?? [],
     sheetItem: {
       worksNums: album?.songCount ?? 0,
@@ -664,13 +657,12 @@ type NdAuthInfo = {
 };
 
 module.exports = {
-  platform: "Navidrome",
-  version: ND_PLUGIN_VERSION,
-  author: "猪小乐",
-  appVersion: ">0.1.0-alpha.0",
-  srcUrl:
-    "https://registry.npmmirror.com/musicfree-plugins/latest/files/navidrome/index.js",
-  cacheControl: "no-cache",
+  platform: pluginInfo.pluginName,
+  version: pluginInfo.pluginVersion,
+  author: config.author,
+  appVersion: pluginInfo.appVersion,
+  srcUrl: pluginInfo.srcUrl,
+  cacheControl: pluginInfo.cacheControl,
   userVariables: [
     {
       key: "url",
@@ -811,7 +803,7 @@ module.exports = {
     }
 
     return {
-      isEnd: sheetList == null ? true : sheetList.length < ND_PAGE_SIZE,
+      isEnd: sheetList == null ? true : sheetList.length < config.pageSize,
       data: sheetList,
     };
   },
@@ -828,7 +820,7 @@ module.exports = {
     }
 
     return {
-      isEnd: musicList == null ? true : musicList.length < ND_PAGE_SIZE,
+      isEnd: musicList == null ? true : musicList.length < config.pageSize,
       musicList: musicList,
     };
   },
