@@ -1,9 +1,6 @@
 const embyAxios = require("axios");
 import uuid from "react-native-uuid";
-
-const embyCookieManager = !env?.debug
-  ? require("@react-native-cookies/cookies")
-  : null;
+import storeManager from "../../common/storeManager";
 
 const EMBY_DEVICE_NAME = "MusicFree";
 const EMBY_PLUGIN_NAME = "Emby";
@@ -16,10 +13,6 @@ const EMBY_UA =
 let embySingletonTokenRequest = null;
 // 唯一检查deviceId的处理
 let embyCheckDeviceIdRequest = null;
-// debug为true时，不使用cookie存储，而使用该变量存储认证信息
-const embyDebugAuthInfo: EmbyAuthInfo = genDefaultEmbyAuthInfo();
-// debug时的deviceId
-const embyDebugDeviceId = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
 function genDefaultEmbyAuthInfo(): EmbyAuthInfo {
   return {
@@ -40,98 +33,39 @@ function genEmbyAuthInfoFromLoginResp(baseUrl, loginResp): EmbyAuthInfo {
 }
 
 async function storeEmbyAuthInfo(baseUrl, authInfo: EmbyAuthInfo) {
-  if (!embyCookieManager) {
-    return await new Promise<any>((resolve, reject) => {
-      try {
-        embyDebugAuthInfo.embyBaseUrl = authInfo?.embyBaseUrl ?? "";
-        embyDebugAuthInfo.embyUserId = authInfo?.embyUserId ?? "";
-        embyDebugAuthInfo.embyUsername = authInfo?.embyUsername ?? "";
-        embyDebugAuthInfo.embyToken = authInfo?.embyToken ?? "";
-        resolve("success");
-      } catch (err) {
-        reject(err);
-      }
-    });
-  } else {
-    const embyBaseUrlStore = embyCookieManager.set(baseUrl, {
-      name: "embyBaseUrl",
-      value: authInfo?.embyBaseUrl ?? "",
-    });
-    const embyUserIdStore = embyCookieManager.set(baseUrl, {
-      name: "embyUserId",
-      value: authInfo?.embyUserId ?? "",
-    });
-    const embyUsernameStore = embyCookieManager.set(baseUrl, {
-      name: "embyUsername",
-      value: authInfo?.embyUsername ?? "",
-    });
-    const embyTokenStore = embyCookieManager.set(baseUrl, {
-      name: "embyToken",
-      value: authInfo?.embyToken ?? "",
-    });
-    return await Promise.all([
-      embyBaseUrlStore,
-      embyUserIdStore,
-      embyUsernameStore,
-      embyTokenStore,
-    ]).catch((err) => Promise.reject(err));
-  }
+  const storeAuthInfo = {
+    embyBaseUrl: authInfo?.embyBaseUrl ?? "",
+    embyUserId: authInfo?.embyUserId ?? "",
+    embyUsername: authInfo?.embyUsername ?? "",
+    embyToken: authInfo?.embyToken ?? "",
+  };
+
+  await storeManager.set(
+    baseUrl,
+    "embyAuthInfo",
+    JSON.stringify(storeAuthInfo)
+  );
 }
 
 async function storeEmbyDeviceId(baseUrl, deviceId: string) {
-  if (!embyCookieManager) {
-    return await new Promise<any>((resolve, reject) => {
-      try {
-        resolve("success");
-      } catch (err) {
-        reject(err);
-      }
-    });
-  } else {
-    return await embyCookieManager.set(baseUrl, {
-      name: "embyDeviceId",
-      value: deviceId,
-    });
-  }
+  const storeDeviceId = env?.debug
+    ? "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    : deviceId;
+
+  await storeManager.set(baseUrl, "embyDeviceId", storeDeviceId);
 }
 
 async function getStoredEmbyDeviceId(baseUrl) {
-  if (!embyCookieManager) {
-    return await new Promise<any>((resolve) => {
-      resolve(embyDebugDeviceId);
-    }).catch((err) => Promise.reject(err));
-  } else {
-    return await embyCookieManager
-      .get(baseUrl)
-      .then((cookies) => {
-        return Promise.resolve(cookies.embyDeviceId?.value ?? "");
-      })
-      .catch((err) => Promise.reject(err));
-  }
+  return await storeManager.get(baseUrl, "embyDeviceId");
 }
 
 async function getStoredEmbyAuthInfo(baseUrl) {
-  if (!embyCookieManager) {
-    return await new Promise<any>((resolve) => {
-      resolve(embyDebugAuthInfo);
-    }).catch((err) => Promise.reject(err));
-  } else {
-    return await embyCookieManager
-      .get(baseUrl)
-      .then((cookies) => {
-        return Promise.resolve({
-          embyBaseUrl: cookies.embyBaseUrl?.value,
-          embyUserId: cookies.embyUserId?.value,
-          embyUsername: cookies.embyUsername?.value,
-          embyToken: cookies.embyToken?.value,
-        });
-      })
-      .catch((err) => Promise.reject(err));
-  }
+  const authInfoStr = await storeManager.get(baseUrl, "embyAuthInfo");
+  return authInfoStr?.length > 0 ? JSON.parse(authInfoStr) : null;
 }
 
 async function resetStoredEmbyAuthInfo(baseUrl) {
-  return await storeEmbyAuthInfo(baseUrl, genDefaultEmbyAuthInfo());
+  await storeManager.remove(baseUrl, "embyAuthInfo");
 }
 
 function getEmbyUserVariables() {

@@ -1,8 +1,6 @@
 const ndAxios = require("axios");
 const ndCryptoJs = require("crypto-js");
-const ndCookieManager = !env?.debug
-  ? require("@react-native-cookies/cookies")
-  : null;
+import storeManager from "../../common/storeManager";
 
 const ND_PLUGIN_VERSION = "0.0.5";
 const ND_PAGE_SIZE = 25;
@@ -15,18 +13,6 @@ const SUBSONIC_API_F = "json";
 
 // 唯一token请求
 let ndSingletonTokenRequest = null;
-// debug为true时，不使用cookie存储，而使用该变量存储认证信息
-const ndDebugAuthInfo: NdAuthInfo = genDefaultNdAuthInfo();
-
-function genDefaultNdAuthInfo(): NdAuthInfo {
-  return {
-    ndBaseUrl: "",
-    ndUsername: "",
-    ndToken: "",
-    subsonicSalt: "",
-    subsonicToken: "",
-  };
-}
 
 function genNdAuthInfoFromLoginResp(baseUrl, loginResp): NdAuthInfo {
   return {
@@ -39,73 +25,24 @@ function genNdAuthInfoFromLoginResp(baseUrl, loginResp): NdAuthInfo {
 }
 
 async function storeNdAuthInfo(baseUrl, authInfo: NdAuthInfo) {
-  if (!ndCookieManager) {
-    return await new Promise<any>((resolve, reject) => {
-      try {
-        ndDebugAuthInfo.ndBaseUrl = authInfo?.ndBaseUrl ?? "";
-        ndDebugAuthInfo.ndUsername = authInfo?.ndUsername ?? "";
-        ndDebugAuthInfo.ndToken = authInfo?.ndToken ?? "";
-        ndDebugAuthInfo.subsonicSalt = authInfo?.subsonicSalt ?? "";
-        ndDebugAuthInfo.subsonicToken = authInfo?.subsonicToken ?? "";
-        resolve("success");
-      } catch (err) {
-        reject(err);
-      }
-    });
-  } else {
-    const ndBaseUrlStore = ndCookieManager.set(baseUrl, {
-      name: "ndBaseUrl",
-      value: authInfo?.ndBaseUrl ?? "",
-    });
-    const ndUsernameStore = ndCookieManager.set(baseUrl, {
-      name: "ndUsername",
-      value: authInfo?.ndUsername ?? "",
-    });
-    const ndTokenStore = ndCookieManager.set(baseUrl, {
-      name: "ndToken",
-      value: authInfo?.ndToken ?? "",
-    });
-    const subsonicSaltStore = ndCookieManager.set(baseUrl, {
-      name: "subsonicSalt",
-      value: authInfo?.subsonicSalt ?? "",
-    });
-    const subsonicTokenStore = ndCookieManager.set(baseUrl, {
-      name: "subsonicToken",
-      value: authInfo?.subsonicToken ?? "",
-    });
-    return await Promise.all([
-      ndBaseUrlStore,
-      ndUsernameStore,
-      ndTokenStore,
-      subsonicSaltStore,
-      subsonicTokenStore,
-    ]).catch((err) => Promise.reject(err));
-  }
+  const storeAuthInfo = {
+    ndBaseUrl: authInfo?.ndBaseUrl ?? "",
+    ndUsername: authInfo?.ndUsername ?? "",
+    ndToken: authInfo?.ndToken ?? "",
+    subsonicSalt: authInfo?.subsonicSalt ?? "",
+    subsonicToken: authInfo?.subsonicToken ?? "",
+  };
+
+  await storeManager.set(baseUrl, "ndAuthInfo", JSON.stringify(storeAuthInfo));
 }
 
 async function getStoredNdAuthInfo(baseUrl) {
-  if (!ndCookieManager) {
-    return await new Promise<any>((resolve) => {
-      resolve(ndDebugAuthInfo);
-    });
-  } else {
-    return await ndCookieManager
-      .get(baseUrl)
-      .then((cookies) => {
-        return Promise.resolve({
-          ndBaseUrl: cookies.ndBaseUrl?.value,
-          ndUsername: cookies.ndUsername?.value,
-          ndToken: cookies.ndToken?.value,
-          subsonicSalt: cookies.subsonicSalt?.value,
-          subsonicToken: cookies.subsonicToken?.value,
-        });
-      })
-      .catch((err) => Promise.reject(err));
-  }
+  const authInfoStr = await storeManager.get(baseUrl, "ndAuthInfo");
+  return authInfoStr?.length > 0 ? JSON.parse(authInfoStr) : null;
 }
 
 async function resetStoredNdAuthInfo(baseUrl) {
-  return await storeNdAuthInfo(baseUrl, genDefaultNdAuthInfo());
+  await storeManager.remove(baseUrl, "ndAuthInfo");
 }
 
 function getNdUserVariables() {

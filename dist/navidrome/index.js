@@ -1,10 +1,46 @@
 'use strict';
 
-const ndAxios = require("axios");
-const ndCryptoJs = require("crypto-js");
-const ndCookieManager = !(env === null || env === void 0 ? void 0 : env.debug)
+const embyCookieManager = !(env === null || env === void 0 ? void 0 : env.debug)
     ? require("@react-native-cookies/cookies")
     : null;
+const memoryStorage = {};
+const storeManager = {
+    set: async function (namespace, key, value) {
+        if (embyCookieManager) {
+            await embyCookieManager.set(namespace, {
+                name: key,
+                value: value !== null && value !== void 0 ? value : "",
+            });
+        }
+        else {
+            memoryStorage[`${namespace !== null && namespace !== void 0 ? namespace : ""}_${key}`] = value;
+        }
+    },
+    get: async function (namespace, key) {
+        var _a, _b;
+        if (embyCookieManager) {
+            const value = (_b = (_a = (await embyCookieManager.get(namespace))) === null || _a === void 0 ? void 0 : _a[key]) === null || _b === void 0 ? void 0 : _b.value;
+            return value !== null && value !== void 0 ? value : "";
+        }
+        else {
+            return memoryStorage[`${namespace !== null && namespace !== void 0 ? namespace : ""}_${key}`];
+        }
+    },
+    remove: async function (namespace, key) {
+        if (embyCookieManager) {
+            await embyCookieManager.set(namespace, {
+                name: key,
+                value: "",
+            });
+        }
+        else {
+            delete memoryStorage[`${namespace !== null && namespace !== void 0 ? namespace : ""}_${key}`];
+        }
+    },
+};
+
+const ndAxios = require("axios");
+const ndCryptoJs = require("crypto-js");
 const ND_PLUGIN_VERSION = "0.0.5";
 const ND_PAGE_SIZE = 25;
 const ND_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
@@ -12,16 +48,6 @@ const SUBSONIC_API_C = "MusicFree-PigNavidrome";
 const SUBSONIC_API_V = "1.14.0";
 const SUBSONIC_API_F = "json";
 let ndSingletonTokenRequest = null;
-const ndDebugAuthInfo = genDefaultNdAuthInfo();
-function genDefaultNdAuthInfo() {
-    return {
-        ndBaseUrl: "",
-        ndUsername: "",
-        ndToken: "",
-        subsonicSalt: "",
-        subsonicToken: "",
-    };
-}
 function genNdAuthInfoFromLoginResp(baseUrl, loginResp) {
     var _a, _b, _c, _d;
     return {
@@ -34,76 +60,21 @@ function genNdAuthInfoFromLoginResp(baseUrl, loginResp) {
 }
 async function storeNdAuthInfo(baseUrl, authInfo) {
     var _a, _b, _c, _d, _e;
-    if (!ndCookieManager) {
-        return await new Promise((resolve, reject) => {
-            var _a, _b, _c, _d, _e;
-            try {
-                ndDebugAuthInfo.ndBaseUrl = (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "";
-                ndDebugAuthInfo.ndUsername = (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) !== null && _b !== void 0 ? _b : "";
-                ndDebugAuthInfo.ndToken = (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndToken) !== null && _c !== void 0 ? _c : "";
-                ndDebugAuthInfo.subsonicSalt = (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt) !== null && _d !== void 0 ? _d : "";
-                ndDebugAuthInfo.subsonicToken = (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "";
-                resolve("success");
-            }
-            catch (err) {
-                reject(err);
-            }
-        });
-    }
-    else {
-        const ndBaseUrlStore = ndCookieManager.set(baseUrl, {
-            name: "ndBaseUrl",
-            value: (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "",
-        });
-        const ndUsernameStore = ndCookieManager.set(baseUrl, {
-            name: "ndUsername",
-            value: (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) !== null && _b !== void 0 ? _b : "",
-        });
-        const ndTokenStore = ndCookieManager.set(baseUrl, {
-            name: "ndToken",
-            value: (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndToken) !== null && _c !== void 0 ? _c : "",
-        });
-        const subsonicSaltStore = ndCookieManager.set(baseUrl, {
-            name: "subsonicSalt",
-            value: (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt) !== null && _d !== void 0 ? _d : "",
-        });
-        const subsonicTokenStore = ndCookieManager.set(baseUrl, {
-            name: "subsonicToken",
-            value: (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "",
-        });
-        return await Promise.all([
-            ndBaseUrlStore,
-            ndUsernameStore,
-            ndTokenStore,
-            subsonicSaltStore,
-            subsonicTokenStore,
-        ]).catch((err) => Promise.reject(err));
-    }
+    const storeAuthInfo = {
+        ndBaseUrl: (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndBaseUrl) !== null && _a !== void 0 ? _a : "",
+        ndUsername: (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndUsername) !== null && _b !== void 0 ? _b : "",
+        ndToken: (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.ndToken) !== null && _c !== void 0 ? _c : "",
+        subsonicSalt: (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicSalt) !== null && _d !== void 0 ? _d : "",
+        subsonicToken: (_e = authInfo === null || authInfo === void 0 ? void 0 : authInfo.subsonicToken) !== null && _e !== void 0 ? _e : "",
+    };
+    await storeManager.set(baseUrl, "ndAuthInfo", JSON.stringify(storeAuthInfo));
 }
 async function getStoredNdAuthInfo(baseUrl) {
-    if (!ndCookieManager) {
-        return await new Promise((resolve) => {
-            resolve(ndDebugAuthInfo);
-        });
-    }
-    else {
-        return await ndCookieManager
-            .get(baseUrl)
-            .then((cookies) => {
-            var _a, _b, _c, _d, _e;
-            return Promise.resolve({
-                ndBaseUrl: (_a = cookies.ndBaseUrl) === null || _a === void 0 ? void 0 : _a.value,
-                ndUsername: (_b = cookies.ndUsername) === null || _b === void 0 ? void 0 : _b.value,
-                ndToken: (_c = cookies.ndToken) === null || _c === void 0 ? void 0 : _c.value,
-                subsonicSalt: (_d = cookies.subsonicSalt) === null || _d === void 0 ? void 0 : _d.value,
-                subsonicToken: (_e = cookies.subsonicToken) === null || _e === void 0 ? void 0 : _e.value,
-            });
-        })
-            .catch((err) => Promise.reject(err));
-    }
+    const authInfoStr = await storeManager.get(baseUrl, "ndAuthInfo");
+    return (authInfoStr === null || authInfoStr === void 0 ? void 0 : authInfoStr.length) > 0 ? JSON.parse(authInfoStr) : null;
 }
 async function resetStoredNdAuthInfo(baseUrl) {
-    return await storeNdAuthInfo(baseUrl, genDefaultNdAuthInfo());
+    await storeManager.remove(baseUrl, "ndAuthInfo");
 }
 function getNdUserVariables() {
     var _a, _b, _c;

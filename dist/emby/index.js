@@ -793,10 +793,46 @@ var _default = dist.default = {
     X500: utils_1.X500,
 };
 
-const embyAxios = require("axios");
 const embyCookieManager = !(env === null || env === void 0 ? void 0 : env.debug)
     ? require("@react-native-cookies/cookies")
     : null;
+const memoryStorage = {};
+const storeManager = {
+    set: async function (namespace, key, value) {
+        if (embyCookieManager) {
+            await embyCookieManager.set(namespace, {
+                name: key,
+                value: value !== null && value !== void 0 ? value : "",
+            });
+        }
+        else {
+            memoryStorage[`${namespace !== null && namespace !== void 0 ? namespace : ""}_${key}`] = value;
+        }
+    },
+    get: async function (namespace, key) {
+        var _a, _b;
+        if (embyCookieManager) {
+            const value = (_b = (_a = (await embyCookieManager.get(namespace))) === null || _a === void 0 ? void 0 : _a[key]) === null || _b === void 0 ? void 0 : _b.value;
+            return value !== null && value !== void 0 ? value : "";
+        }
+        else {
+            return memoryStorage[`${namespace !== null && namespace !== void 0 ? namespace : ""}_${key}`];
+        }
+    },
+    remove: async function (namespace, key) {
+        if (embyCookieManager) {
+            await embyCookieManager.set(namespace, {
+                name: key,
+                value: "",
+            });
+        }
+        else {
+            delete memoryStorage[`${namespace !== null && namespace !== void 0 ? namespace : ""}_${key}`];
+        }
+    },
+};
+
+const embyAxios = require("axios");
 const EMBY_DEVICE_NAME = "MusicFree";
 const EMBY_PLUGIN_NAME = "Emby";
 const EMBY_PLUGIN_VERSION = "0.0.1";
@@ -804,16 +840,6 @@ const EMBY_PAGE_SIZE = 25;
 const EMBY_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0";
 let embySingletonTokenRequest = null;
 let embyCheckDeviceIdRequest = null;
-const embyDebugAuthInfo = genDefaultEmbyAuthInfo();
-const embyDebugDeviceId = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-function genDefaultEmbyAuthInfo() {
-    return {
-        embyBaseUrl: "",
-        embyUserId: "",
-        embyUsername: "",
-        embyToken: "",
-    };
-}
 function genEmbyAuthInfoFromLoginResp(baseUrl, loginResp) {
     var _a, _b, _c, _d, _e;
     return {
@@ -825,103 +851,29 @@ function genEmbyAuthInfoFromLoginResp(baseUrl, loginResp) {
 }
 async function storeEmbyAuthInfo(baseUrl, authInfo) {
     var _a, _b, _c, _d;
-    if (!embyCookieManager) {
-        return await new Promise((resolve, reject) => {
-            var _a, _b, _c, _d;
-            try {
-                embyDebugAuthInfo.embyBaseUrl = (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyBaseUrl) !== null && _a !== void 0 ? _a : "";
-                embyDebugAuthInfo.embyUserId = (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUserId) !== null && _b !== void 0 ? _b : "";
-                embyDebugAuthInfo.embyUsername = (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUsername) !== null && _c !== void 0 ? _c : "";
-                embyDebugAuthInfo.embyToken = (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyToken) !== null && _d !== void 0 ? _d : "";
-                resolve("success");
-            }
-            catch (err) {
-                reject(err);
-            }
-        });
-    }
-    else {
-        const embyBaseUrlStore = embyCookieManager.set(baseUrl, {
-            name: "embyBaseUrl",
-            value: (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyBaseUrl) !== null && _a !== void 0 ? _a : "",
-        });
-        const embyUserIdStore = embyCookieManager.set(baseUrl, {
-            name: "embyUserId",
-            value: (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUserId) !== null && _b !== void 0 ? _b : "",
-        });
-        const embyUsernameStore = embyCookieManager.set(baseUrl, {
-            name: "embyUsername",
-            value: (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUsername) !== null && _c !== void 0 ? _c : "",
-        });
-        const embyTokenStore = embyCookieManager.set(baseUrl, {
-            name: "embyToken",
-            value: (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyToken) !== null && _d !== void 0 ? _d : "",
-        });
-        return await Promise.all([
-            embyBaseUrlStore,
-            embyUserIdStore,
-            embyUsernameStore,
-            embyTokenStore,
-        ]).catch((err) => Promise.reject(err));
-    }
+    const storeAuthInfo = {
+        embyBaseUrl: (_a = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyBaseUrl) !== null && _a !== void 0 ? _a : "",
+        embyUserId: (_b = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUserId) !== null && _b !== void 0 ? _b : "",
+        embyUsername: (_c = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyUsername) !== null && _c !== void 0 ? _c : "",
+        embyToken: (_d = authInfo === null || authInfo === void 0 ? void 0 : authInfo.embyToken) !== null && _d !== void 0 ? _d : "",
+    };
+    await storeManager.set(baseUrl, "embyAuthInfo", JSON.stringify(storeAuthInfo));
 }
 async function storeEmbyDeviceId(baseUrl, deviceId) {
-    if (!embyCookieManager) {
-        return await new Promise((resolve, reject) => {
-            try {
-                resolve("success");
-            }
-            catch (err) {
-                reject(err);
-            }
-        });
-    }
-    else {
-        return await embyCookieManager.set(baseUrl, {
-            name: "embyDeviceId",
-            value: deviceId,
-        });
-    }
+    const storeDeviceId = (env === null || env === void 0 ? void 0 : env.debug)
+        ? "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        : deviceId;
+    await storeManager.set(baseUrl, "embyDeviceId", storeDeviceId);
 }
 async function getStoredEmbyDeviceId(baseUrl) {
-    if (!embyCookieManager) {
-        return await new Promise((resolve) => {
-            resolve(embyDebugDeviceId);
-        }).catch((err) => Promise.reject(err));
-    }
-    else {
-        return await embyCookieManager
-            .get(baseUrl)
-            .then((cookies) => {
-            var _a, _b;
-            return Promise.resolve((_b = (_a = cookies.embyDeviceId) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : "");
-        })
-            .catch((err) => Promise.reject(err));
-    }
+    return await storeManager.get(baseUrl, "embyDeviceId");
 }
 async function getStoredEmbyAuthInfo(baseUrl) {
-    if (!embyCookieManager) {
-        return await new Promise((resolve) => {
-            resolve(embyDebugAuthInfo);
-        }).catch((err) => Promise.reject(err));
-    }
-    else {
-        return await embyCookieManager
-            .get(baseUrl)
-            .then((cookies) => {
-            var _a, _b, _c, _d;
-            return Promise.resolve({
-                embyBaseUrl: (_a = cookies.embyBaseUrl) === null || _a === void 0 ? void 0 : _a.value,
-                embyUserId: (_b = cookies.embyUserId) === null || _b === void 0 ? void 0 : _b.value,
-                embyUsername: (_c = cookies.embyUsername) === null || _c === void 0 ? void 0 : _c.value,
-                embyToken: (_d = cookies.embyToken) === null || _d === void 0 ? void 0 : _d.value,
-            });
-        })
-            .catch((err) => Promise.reject(err));
-    }
+    const authInfoStr = await storeManager.get(baseUrl, "embyAuthInfo");
+    return (authInfoStr === null || authInfoStr === void 0 ? void 0 : authInfoStr.length) > 0 ? JSON.parse(authInfoStr) : null;
 }
 async function resetStoredEmbyAuthInfo(baseUrl) {
-    return await storeEmbyAuthInfo(baseUrl, genDefaultEmbyAuthInfo());
+    await storeManager.remove(baseUrl, "embyAuthInfo");
 }
 function getEmbyUserVariables() {
     var _a, _b, _c;
