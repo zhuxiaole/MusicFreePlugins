@@ -4,11 +4,11 @@
 
 #### Navidrome
 
-https://gh.zhuxiaole.link/https://raw.githubusercontent.com/zhuxiaole/MusicFreePlugins/main/dist/navidrome/index.js
+[https://registry.npmmirror.com/musicfree-plugins/latest/files/navidrome/index.js](https://registry.npmmirror.com/musicfree-plugins/latest/files/navidrome/index.js)
 
 #### Emby
 
-还没做
+暂停开发（MusicFree Windows 端无法持久化存储用户 token 和设备 ID ，导致每次重新启动都会重新生成一个设备 ID ，不太合适）
 
 ### 支持的功能
 
