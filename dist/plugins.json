@@ -1,9 +1,0 @@
-{
-  "plugins": [
-    {
-      "name": "Navidrome",
-      "url": "https://registry.npmmirror.com/musicfree-plugins/latest/files/navidrome/index.js",
-      "version": "0.0.5"
-    }
-  ]
-}
