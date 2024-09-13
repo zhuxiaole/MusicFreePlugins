@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const pluginsSourcePath = path.resolve(__dirname, "./plugins");
+const distPath = path.resolve(__dirname, "./dist");
 
 async function getNeedDistPlugins() {
   const needDistPlugins = [];
@@ -23,9 +24,12 @@ async function getNeedDistPlugins() {
       await fs.stat(pluginInfoPath);
       const pluginInfo = JSON.parse(await fs.readFile(pluginInfoPath));
       if (pluginInfo.dist ?? true) {
+        const inputPath = path.resolve(pluginsSourcePath, file, "index.ts");
+        const outputPath = path.resolve(distPath, file, "index.js");
+      
         needDistPlugins.push({
-          input: `plugins/${file}/index.ts`,
-          output: [{ file: `dist/${file}/index.js`, format: "cjs" }],
+          input: inputPath,
+          output: [{ file: outputPath, format: "cjs" }],
           plugins: [commonjs(), nodeResolve({
             exportConditions: ['node'],
             extensions: ['.ts', '.js'],

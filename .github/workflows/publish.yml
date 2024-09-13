@@ -3,7 +3,7 @@ name: 发布至npm
 on:
   push:
     tags:
-      - '*'
+      - "*"
   workflow_dispatch:
 
 jobs:
@@ -22,12 +22,19 @@ jobs:
           node-version: "20.x"
           registry-url: https://registry.npmjs.org/
 
-      # 安装相关插件，转换图片。
+      # 安装相关插件
       - name: 安装依赖 & 编译
         run: |
           npm install
           npm install -g typescript
-          npm run build
+          npm install -g rollup
+
+      # 编译打包
+      - name: 安装依赖
+        run: |
+          node ./scripts/clearDist.js
+          rollup -c
+          node ./scripts/generate.js
 
       # 发布 NPM 包
       - name: 发布至 npm

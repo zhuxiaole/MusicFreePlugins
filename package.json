@@ -1,6 +1,6 @@
 {
   "name": "MusicFreePlugins",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MusicFree插件",
   "main": "dist/plugin.js",
   "scripts": {
